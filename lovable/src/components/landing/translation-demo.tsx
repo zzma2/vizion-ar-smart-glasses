@@ -173,7 +173,6 @@ function SpeakToText() {
     };
   }, []);
 
-  // Update translation when target language or transcript changes
   useEffect(() => {
     if (!transcript) {
       setTranslated("");
@@ -276,14 +275,12 @@ function SpeakToText() {
             </button>
           )}
 
-          {/* AR Subtitles · Listening Mode Badge */}
           <div className="inline-flex items-center gap-2 rounded-full border border-terracotta/40 bg-charcoal/80 px-3.5 py-1.5 text-xs font-mono text-terracotta shadow-sm">
             <span className={`size-2 rounded-full ${listening ? "bg-terracotta animate-pulse" : "bg-cream/40"}`} />
             <span>AR Subtitles · Listening Mode</span>
           </div>
         </div>
 
-        {/* Language Selector Dropdown */}
         <div className="flex items-center gap-2">
           <div className="inline-flex items-center gap-1.5 rounded-full border border-cream/20 bg-cream/5 px-3 py-1.5 text-xs font-mono text-cream">
             <Languages className="size-3.5 text-terracotta" />
@@ -411,10 +408,10 @@ function SignToAudio() {
         });
 
         hands.setOptions({
-          maxNumHands: 1,
+          maxNumHands: 2, // Enable Dual Hand Tracking!
           modelComplexity: 1,
-          minDetectionConfidence: 0.65,
-          minTrackingConfidence: 0.65,
+          minDetectionConfidence: 0.60,
+          minTrackingConfidence: 0.60,
         });
 
         hands.onResults(onResults);
@@ -515,8 +512,6 @@ function SignToAudio() {
       ctx.clearRect(0, 0, width, height);
 
       if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-        const landmarks = results.multiHandLandmarks[0];
-
         const HAND_CONNECTIONS = [
           [0, 1], [1, 2], [2, 3], [3, 4],
           [0, 5], [5, 6], [6, 7], [7, 8],
@@ -525,40 +520,45 @@ function SignToAudio() {
           [13, 17], [0, 17], [17, 18], [18, 19], [19, 20]
         ];
 
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = "#e88d5a";
-        ctx.shadowColor = "#e88d5a";
-        ctx.shadowBlur = 10;
+        // Draw HUD hand skeleton for ALL detected hands (both hands!)
+        results.multiHandLandmarks.forEach((landmarks: any) => {
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = "#e88d5a";
+          ctx.shadowColor = "#e88d5a";
+          ctx.shadowBlur = 10;
 
-        HAND_CONNECTIONS.forEach(([i, j]) => {
-          const p1 = landmarks[i];
-          const p2 = landmarks[j];
-          ctx.beginPath();
-          ctx.moveTo(p1.x * width, p1.y * height);
-          ctx.lineTo(p2.x * width, p2.y * height);
-          ctx.stroke();
+          HAND_CONNECTIONS.forEach(([i, j]) => {
+            const p1 = landmarks[i];
+            const p2 = landmarks[j];
+            ctx.beginPath();
+            ctx.moveTo(p1.x * width, p1.y * height);
+            ctx.lineTo(p2.x * width, p2.y * height);
+            ctx.stroke();
+          });
+
+          ctx.shadowBlur = 0;
+          landmarks.forEach((p: any, idx: number) => {
+            const isFingertip = idx === 4 || idx === 8 || idx === 12 || idx === 16 || idx === 20;
+            ctx.fillStyle = isFingertip ? "#faf8f5" : "#e88d5a";
+            ctx.beginPath();
+            ctx.arc(p.x * width, p.y * height, isFingertip ? 6 : 4, 0, 2 * Math.PI);
+            ctx.fill();
+          });
         });
 
-        ctx.shadowBlur = 0;
-        landmarks.forEach((p: any, idx: number) => {
-          const isFingertip = idx === 4 || idx === 8 || idx === 12 || idx === 16 || idx === 20;
-          ctx.fillStyle = isFingertip ? "#faf8f5" : "#e88d5a";
-          ctx.beginPath();
-          ctx.arc(p.x * width, p.y * height, isFingertip ? 6 : 4, 0, 2 * Math.PI);
-          ctx.fill();
-        });
-
+        const primaryLandmarks = results.multiHandLandmarks[0];
         if (!landmarkHistoryRef.current) landmarkHistoryRef.current = [];
-        landmarkHistoryRef.current.push({ time: Date.now(), landmarks });
+        landmarkHistoryRef.current.push({ time: Date.now(), landmarks: primaryLandmarks });
         if (landmarkHistoryRef.current.length > 12) landmarkHistoryRef.current.shift();
 
         const isRear = facingMode === "environment";
         const detected = classifierRef.current?.classifyLandmarks(
-          landmarks,
+          primaryLandmarks,
           isRear,
           landmarkHistoryRef.current,
           width,
-          height
+          height,
+          results.multiHandLandmarks
         ) || "A";
 
         setCurrentGesture(detected);
@@ -583,14 +583,28 @@ function SignToAudio() {
 
               const isPhrase = detected.length > 1;
               setBuffer((prev) => {
-                const updated = isPhrase
+                let updated = isPhrase
                   ? (prev.endsWith(" ") || prev.length === 0 ? "" : " ") + prev + " " + detected + " "
                   : prev + detected;
+
+                // Auto-detect "M A R S" sequence in spelled letters -> append " Mars " & speak "Mars"
+                const lettersOnly = updated.replace(/[^A-Za-z]/g, "").toUpperCase();
+                if (lettersOnly.endsWith("MARS") && !updated.includes("Mars")) {
+                  updated = updated + " Mars ";
+                  if (ttsRef.current) {
+                    ttsRef.current.speak("Mars");
+                  }
+                }
+
                 return updated;
               });
 
               if (isPhrase && ttsRef.current) {
-                ttsRef.current.speak(detected);
+                if (detected === "NAME") {
+                  ttsRef.current.speak("Name is");
+                } else {
+                  ttsRef.current.speak(detected);
+                }
               }
             }
           }

@@ -18,12 +18,55 @@ export class MediaPipeASLClassifier {
     );
   }
 
+  // -------------------------------------------------------------
+  // 1. 双手 "NAME" 识别算法 (Two-Handed NAME Only!)
+  // -------------------------------------------------------------
+  detectTwoHandPhrase(multiHandLandmarks: Point3D[][]): string | null {
+    if (!multiHandLandmarks || multiHandLandmarks.length < 2) return null;
+
+    const hand1 = multiHandLandmarks[0];
+    const hand2 = multiHandLandmarks[1];
+
+    if (!hand1 || hand1.length < 21 || !hand2 || hand2.length < 21) return null;
+
+    const wrist1 = hand1[0], wrist2 = hand2[0];
+    const indexTip1 = hand1[8], indexTip2 = hand2[8];
+    const middleMCP1 = hand1[9], middleMCP2 = hand2[9];
+
+    if (wrist1.y < 0.20 || wrist2.y < 0.20 || wrist1.y > 0.92 || wrist2.y > 0.92) return null;
+
+    const distBetweenWrists = Math.sqrt(Math.pow(wrist1.x - wrist2.x, 2) + Math.pow(wrist1.y - wrist2.y, 2));
+    const distHandOverlap = Math.sqrt(Math.pow(indexTip1.x - indexTip2.x, 2) + Math.pow(indexTip1.y - indexTip2.y, 2));
+    const distCrossOverlap = Math.sqrt(Math.pow(indexTip1.x - middleMCP2.x, 2) + Math.pow(indexTip1.y - middleMCP2.y, 2));
+
+    if (distBetweenWrists < 0.50 || distHandOverlap < 0.38 || distCrossOverlap < 0.38) {
+      const handScale1 = Math.max(this.dist(wrist1, middleMCP1), 0.05);
+      const handScale2 = Math.max(this.dist(wrist2, middleMCP2), 0.05);
+
+      const extIndex1 = this.dist(indexTip1, wrist1) / handScale1;
+      const extPinky1 = this.dist(hand1[20], wrist1) / handScale1;
+      const extIndex2 = this.dist(indexTip2, wrist2) / handScale2;
+      const extPinky2 = this.dist(hand2[20], wrist2) / handScale2;
+
+      if (extIndex1 > extPinky1 * 0.95 && extIndex2 > extPinky2 * 0.95) {
+        return "NAME";
+      }
+    }
+
+    return null;
+  }
+
+  // -------------------------------------------------------------
+  // 2. 单手短语识别算法 (HELLO / THANK YOU / MY)
+  // -------------------------------------------------------------
   detectPhrase(rawLandmarks: Point3D[], history: LandmarkHistoryItem[] = []): string | null {
-    if (!rawLandmarks || rawLandmarks.length < 21 || !history || history.length < 3) return null;
+    if (!rawLandmarks || rawLandmarks.length < 21) return null;
 
     const wrist = rawLandmarks[0];
-    const indexTip = rawLandmarks[8], middleTip = rawLandmarks[12], ringTip = rawLandmarks[16], pinkyTip = rawLandmarks[20];
-    const middleMCP = rawLandmarks[9];
+    const thumbTip = rawLandmarks[4];
+    const indexTip = rawLandmarks[8], indexMCP = rawLandmarks[5];
+    const middleTip = rawLandmarks[12], middleMCP = rawLandmarks[9];
+    const ringTip = rawLandmarks[16], pinkyTip = rawLandmarks[20];
 
     const handScale = Math.max(
       Math.sqrt(Math.pow(wrist.x - middleMCP.x, 2) + Math.pow(wrist.y - middleMCP.y, 2)),
@@ -35,25 +78,59 @@ export class MediaPipeASLClassifier {
     const extRing = Math.sqrt(Math.pow(ringTip.x - wrist.x, 2) + Math.pow(ringTip.y - wrist.y, 2)) / handScale;
     const extPinky = Math.sqrt(Math.pow(pinkyTip.x - wrist.x, 2) + Math.pow(pinkyTip.y - wrist.y, 2)) / handScale;
 
-    const isFlatOpenHand = extIndex > 1.15 && extMiddle > 1.15 && extRing > 1.10 && extPinky > 1.05;
-    if (!isFlatOpenHand) return null;
+    const normThumbIndex = Math.sqrt(Math.pow(thumbTip.x - indexTip.x, 2) + Math.pow(thumbTip.y - indexTip.y, 2)) / handScale;
 
-    const oldest = history[0].landmarks;
-    if (!oldest || oldest.length < 21) return null;
+    // 拦截 C 弧形弯曲手型
+    const indexCurvature = this.dist(indexTip, indexMCP) / handScale;
+    const isCHandshapePattern = indexCurvature < 0.74 && normThumbIndex >= 0.28 && normThumbIndex <= 1.25;
 
-    const deltaX = indexTip.x - oldest[8].x;
-    const deltaY = indexTip.y - oldest[8].y;
-    const absDeltaX = Math.abs(deltaX);
-    const absDeltaY = Math.abs(deltaY);
-
-    // 1. "HELLO" - Open B-hand starting at temple/head height, moving DOMINANTLY HORIZONTALLY (absDeltaX > absDeltaY * 1.3)
-    if (wrist.y < 0.52 && absDeltaX > 0.065 && absDeltaX > absDeltaY * 1.3) {
-      return 'HELLO';
+    if (isCHandshapePattern) {
+      return null;
     }
 
-    // 2. "THANK YOU" - Open B-hand starting at chin/lips level (oldest[12].y >= 0.45), moving DOMINANTLY DOWNWARDS (deltaY > absDeltaX * 1.3)
-    if (oldest[12].y >= 0.45 && deltaY > 0.095 && deltaY > absDeltaX * 1.3) {
-      return 'THANK YOU';
+    const isFlatOpenHand =
+      indexCurvature >= 0.74 &&
+      extIndex > 1.20 &&
+      extMiddle > 1.20 &&
+      extRing > 1.12 &&
+      extPinky > 1.02 &&
+      normThumbIndex > 0.38 &&
+      indexTip.y < wrist.y + 0.05 * handScale;
+
+    // A. "THANK YOU"
+    if (isFlatOpenHand && history && history.length >= 2) {
+      const oldest = history[0].landmarks;
+      if (oldest && oldest[8]) {
+        const deltaY = indexTip.y - oldest[8].y;
+        const deltaX = indexTip.x - oldest[8].x;
+        if (oldest[8].y >= 0.35 && deltaY > 0.040 && deltaY > Math.abs(deltaX) * 0.8) {
+          return "THANK YOU";
+        }
+      }
+    }
+
+    // B. "HELLO"
+    if (isFlatOpenHand && indexTip.y < 0.28 && wrist.y < 0.38) {
+      if (history && history.length >= 2) {
+        const oldest = history[0].landmarks;
+        if (oldest && oldest[8]) {
+          const deltaY = indexTip.y - oldest[8].y;
+          if (oldest[8].y >= 0.38 && deltaY > 0.040) {
+            return "THANK YOU";
+          }
+        }
+      }
+      return "HELLO";
+    }
+
+    // C. "MY" (我的) - 斜向上姿态
+    const dy = wrist.y - middleTip.y;
+    const dx = Math.abs(middleTip.x - wrist.x);
+    const isDiagonallyUpward = dy > 0.08 * handScale && dx >= 0.45 * dy;
+    const isChestHeight = wrist.y >= 0.35 && wrist.y <= 0.88;
+
+    if (isFlatOpenHand && isDiagonallyUpward && isChestHeight) {
+      return "MY";
     }
 
     return null;
@@ -64,8 +141,14 @@ export class MediaPipeASLClassifier {
     isRearCamera = false,
     history: LandmarkHistoryItem[] = [],
     videoWidth = 1280,
-    videoHeight = 720
+    videoHeight = 720,
+    multiHandLandmarks: Point3D[][] = []
   ): string {
+    if (multiHandLandmarks && multiHandLandmarks.length >= 2) {
+      const twoHandPhrase = this.detectTwoHandPhrase(multiHandLandmarks);
+      if (twoHandPhrase) return twoHandPhrase;
+    }
+
     if (!rawLandmarks || rawLandmarks.length < 21) return 'A';
 
     const phrase = this.detectPhrase(rawLandmarks, history);
@@ -102,54 +185,71 @@ export class MediaPipeASLClassifier {
     const extPinky = this.dist(pinkyTip, wrist) / handScale;
     const extThumb = this.dist(thumbTip, wrist) / handScale;
 
-    const isIndexStraight = extIndex > 1.30;
-    const isMiddleStraight = extMiddle > 1.30;
-    const isRingStraight = extRing > 1.30;
-    const isPinkyStraight = extPinky > 1.30;
+    const isIndexStraight = extIndex > 1.20;
+    const isMiddleStraight = extMiddle > 1.20;
+    const isRingStraight = extRing > 1.12;
+    const isPinkyStraight = extPinky > 1.02;
 
-    const isIndexOpen = extIndex > 1.08;
-    const isMiddleOpen = extMiddle > 1.08;
-    const isRingOpen = extRing > 1.08;
-    const isPinkyOpen = extPinky > 0.98;
+    const isIndexOpen = extIndex > 0.98;
+    const isRingOpen = extRing > 0.98;
+    const isPinkyOpen = extPinky > 0.92;
 
     const normThumbIndex = this.dist(thumbTip, indexTip) / handScale;
     const normThumbMiddle = this.dist(thumbTip, middleTip) / handScale;
     const normThumbPinky = this.dist(thumbTip, pinkyTip) / handScale;
-    const normIndexMiddle = this.dist(indexTip, middleTip) / handScale;
 
-    const isPointingDown = isIndexOpen && indexTip.y > wrist.y + 0.12 * handScale && indexTip.y > indexMCP.y + 0.12 * handScale;
-    const isHorizontal = Math.abs(indexTip.y - indexMCP.y) < 0.3 * handScale && Math.abs(indexTip.x - indexMCP.x) > 0.35 * handScale;
-    const isIndexHooked = this.dist(indexTip, wrist) < 0.95 * this.dist(indexPIP, wrist) || (indexTip.y > indexDIP.y && indexTip.y > indexPIP.y);
+    // 核心算法：中指相对于食指的相对伸展比例 (绝杀单指 vs 双指！)
+    // 当中指伸展长度达到食指的 82% 以上时，为双指 (H / P)
+    // 当中指收起长度小于食指的 82% 时，为单指 (G / Q)
+    const isMiddleExtendedAlongsideIndex = (extMiddle > 1.08) && (extMiddle >= extIndex * 0.82);
 
-    let indexDisplacementX = 0, indexDisplacementY = 0;
-    let pinkyDisplacementX = 0, pinkyDisplacementY = 0;
+    const dyUp = wrist.y - middleTip.y;
+    const dxUp = Math.abs(middleTip.x - wrist.x);
+    const isPointingStraightUpB = dyUp > 0.10 * handScale && dxUp < 0.42 * dyUp && isIndexStraight && isMiddleStraight && isRingStraight && isPinkyStraight;
 
-    if (history && history.length >= 2) {
-      const oldest = history[0].landmarks;
-      if (oldest && oldest.length >= 21) {
-        indexDisplacementX = Math.abs(indexTip.x - oldest[8].x);
-        indexDisplacementY = Math.abs(indexTip.y - oldest[8].y);
-        pinkyDisplacementX = Math.abs(pinkyTip.x - oldest[20].x);
-        pinkyDisplacementY = Math.abs(pinkyTip.y - oldest[20].y);
-      }
-    }
+    // P 与 Q：手指朝下 / 斜向下
+    const isPointingDown = indexTip.y > indexMCP.y + 0.15 * handScale;
+
+    // H 与 G：手指横向延伸 across screen
+    const dxHoriz = Math.abs(indexTip.x - indexMCP.x);
+    const dyHoriz = Math.abs(indexTip.y - indexMCP.y);
+    const isHorizontal = !isPointingDown && dxHoriz > dyHoriz * 1.1;
+
+    // R：食指与中指交叉
+    const isCrossed = (indexTip.x > middleTip.x && indexMCP.x < middleMCP.x) || (indexTip.x < middleTip.x && indexMCP.x > middleMCP.x);
 
     let detected = 'A';
 
-    if (isPointingDown && isIndexOpen) {
-      if (isMiddleOpen) detected = 'P';
+    // 1. R：交叉指型
+    if (isCrossed && isIndexOpen && isMiddleExtendedAlongsideIndex && !isRingOpen && !isPinkyOpen) {
+      detected = 'R';
+    }
+    // 2. B / O：垂直向上
+    else if (isPointingStraightUpB) {
+      if (normThumbIndex < 0.32 && normThumbMiddle < 0.35) detected = 'O';
+      else detected = 'B';
+    }
+    // 3. 指向下方：P (双指中指齐伸) vs Q (单指中指收起)
+    else if (isPointingDown && isIndexOpen) {
+      if (isMiddleExtendedAlongsideIndex) detected = 'P';
       else detected = 'Q';
-    } else if (isHorizontal && isIndexOpen && !isRingOpen && !isPinkyOpen) {
-      if (isMiddleOpen && normIndexMiddle < 0.35) detected = 'H';
+    }
+    // 4. 横向放置：H (双指中指齐伸，匹配照片1) vs G (单指中指收起，匹配照片2)
+    else if (isHorizontal && isIndexOpen && !isRingOpen && !isPinkyOpen) {
+      if (isMiddleExtendedAlongsideIndex) detected = 'H';
       else detected = 'G';
-    } else if (
-      normThumbIndex >= 0.38 && normThumbIndex <= 1.25 &&
-      normThumbMiddle >= 0.38 && normThumbMiddle <= 1.25 &&
-      extIndex >= 1.05 && extMiddle >= 1.05 &&
-      extRing >= 0.75 && !isPointingDown
+    }
+    // 5. C：大拇指张开形成 C 弧口
+    else if (
+      !isPointingDown &&
+      normThumbIndex >= 0.25 && normThumbIndex <= 1.28 &&
+      extThumb > 0.50 &&
+      extIndex >= 0.75
     ) {
       detected = 'C';
-    } else if (extIndex < 0.98 && extMiddle < 0.98 && extRing < 0.98 && extPinky < 0.98) {
+    }
+    // 6. 握拳与三指结构
+    else if (extIndex < 0.98 && extMiddle < 0.98 && extRing < 0.98 && extPinky < 0.98) {
       const distThumbIndexPIP = this.dist(thumbTip, indexPIP) / handScale;
       const distThumbMiddlePIP = this.dist(thumbTip, middlePIP) / handScale;
       const distThumbRingPIP = this.dist(thumbTip, ringPIP) / handScale;
@@ -165,34 +265,20 @@ export class MediaPipeASLClassifier {
         detected = 'E';
       } else if (distThumbPinkyMCP < 0.34 || (distThumbPinkyMCP < distThumbMiddleMCP && distThumbRingMCP < 0.32)) {
         detected = 'M';
-      } else if (distThumbRingMCP < 0.32 && distThumbMiddleMCP < distThumbPinkyMCP) {
+      } else if (distThumbRingMCP < 0.32 && distThumbMiddleMCP < distPinkyMCP) {
         detected = 'N';
-      } else if (distThumbMiddleMCP < 0.34 && distThumbIndexMCP < distThumbRingMCP) {
+      } else if (distThumbMiddleMCP < 0.34 && distThumbIndexMCP < distRingMCP) {
         detected = 'T';
       } else {
         detected = 'A';
       }
-    } else if (isIndexStraight && isMiddleStraight && isRingStraight && isPinkyStraight) {
-      if (normThumbIndex < 0.32 && normThumbMiddle < 0.35) detected = 'O';
-      else detected = 'B';
-    } else if (isIndexOpen && isMiddleOpen && isRingOpen && !isPinkyOpen) {
+    } else if (isIndexOpen && isMiddleExtendedAlongsideIndex && isRingOpen && !isPinkyOpen) {
       detected = 'W';
-    } else if (!isIndexOpen && isMiddleOpen && isRingOpen && isPinkyOpen && normThumbIndex < 0.4) {
+    } else if (!isIndexOpen && isMiddleExtendedAlongsideIndex && isRingOpen && isPinkyOpen && normThumbIndex < 0.4) {
       detected = 'F';
-    } else if (isIndexOpen && isMiddleOpen && !isRingOpen && !isPinkyOpen) {
-      const isCrossed = (indexTip.x > middleTip.x && indexMCP.x < middleMCP.x) || (indexTip.x < middleTip.x && indexMCP.x > middleMCP.x);
-      if (isCrossed) {
-        detected = 'R';
-      } else if (normThumbMiddle < 0.38 || this.dist(thumbTip, middlePIP) / handScale < 0.38) {
-        detected = 'K';
-      } else if (normIndexMiddle < 0.24) {
-        detected = 'U';
-      } else {
-        detected = 'V';
-      }
-    } else if (extIndex >= 1.02 && isIndexHooked && !isMiddleOpen && !isRingOpen && !isPinkyOpen) {
+    } else if (extIndex >= 1.02 && isIndexHooked && !isMiddleExtendedAlongsideIndex && !isRingOpen && !isPinkyOpen) {
       detected = 'X';
-    } else if (!isIndexOpen && !isMiddleOpen && !isRingOpen && isPinkyOpen) {
+    } else if (!isIndexOpen && !isMiddleExtendedAlongsideIndex && !isRingOpen && isPinkyOpen) {
       const isThumbOutY = (normThumbIndex > 0.42 || normThumbMiddle > 0.42) && normThumbPinky > 0.55 && extThumb > 0.65;
       const isJTracingMotion = pinkyDisplacementX > 0.06 && pinkyDisplacementY > 0.06 && pinkyDisplacementX + pinkyDisplacementY > 0.12;
 
@@ -203,14 +289,14 @@ export class MediaPipeASLClassifier {
       } else {
         detected = 'I';
       }
-    } else if (isIndexOpen && !isMiddleOpen && !isRingOpen && !isPinkyOpen && extThumb > 0.88 && normThumbIndex > 0.58 && normThumbMiddle > 0.48) {
+    } else if (isIndexOpen && !isMiddleExtendedAlongsideIndex && !isRingOpen && !isPinkyOpen && extThumb > 0.88 && normThumbIndex > 0.58 && normThumbMiddle > 0.48) {
       const isZTracingMotion = indexDisplacementX > 0.06 && indexDisplacementY > 0.06 && indexDisplacementX + indexDisplacementY > 0.12;
       if (isZTracingMotion) {
         detected = 'Z';
       } else {
         detected = 'L';
       }
-    } else if (isIndexOpen && !isMiddleOpen && !isRingOpen && !isPinkyOpen) {
+    } else if (isIndexOpen && !isMiddleExtendedAlongsideIndex && !isRingOpen && !isPinkyOpen) {
       const isZTracingMotion = indexDisplacementX > 0.06 && indexDisplacementY > 0.06 && indexDisplacementX + indexDisplacementY > 0.12;
       if (isZTracingMotion) {
         detected = 'Z';
@@ -261,24 +347,32 @@ export class MediaPipeASLClassifier {
     const extPinky = this.dist(pinkyTip, wrist) / handScale;
     const extThumb = this.dist(thumbTip, wrist) / handScale;
 
-    const isIndexStraight = extIndex > 1.30;
-    const isMiddleStraight = extMiddle > 1.30;
-    const isRingStraight = extRing > 1.30;
-    const isPinkyStraight = extPinky > 1.30;
+    const isIndexStraight = extIndex > 1.22;
+    const isMiddleStraight = extMiddle > 1.22;
+    const isRingStraight = extRing > 1.15;
+    const isPinkyStraight = extPinky > 1.05;
 
-    const isIndexOpen = extIndex > 1.08;
-    const isMiddleOpen = extMiddle > 1.08;
-    const isRingOpen = extRing > 1.08;
-    const isPinkyOpen = extPinky > 0.98;
+    const isIndexOpen = extIndex > 0.98;
+    const isRingOpen = extRing > 0.98;
+    const isPinkyOpen = extPinky > 0.92;
 
     const normThumbIndex = this.dist(thumbTip, indexTip) / handScale;
     const normThumbMiddle = this.dist(thumbTip, middleTip) / handScale;
     const normThumbPinky = this.dist(thumbTip, pinkyTip) / handScale;
-    const normIndexMiddle = this.dist(indexTip, middleTip) / handScale;
 
-    const isPointingDown = isIndexOpen && indexTip.y > wrist.y + 0.12 * handScale && indexTip.y > indexMCP.y + 0.12 * handScale;
-    const isHorizontal = Math.abs(indexTip.y - indexMCP.y) < 0.3 * handScale && Math.abs(indexTip.x - indexMCP.x) > 0.35 * handScale;
-    const isIndexHooked = this.dist(indexTip, wrist) < 0.95 * this.dist(indexPIP, wrist) || (indexTip.y > indexDIP.y && indexTip.y > indexPIP.y);
+    const isMiddleExtendedAlongsideIndex = (extMiddle > 1.08) && (extMiddle >= extIndex * 0.82);
+
+    const dyUp = wrist.y - middleTip.y;
+    const dxUp = Math.abs(middleTip.x - wrist.x);
+    const isPointingStraightUpB = dyUp > 0.10 * handScale && dxUp < 0.42 * dyUp && isIndexStraight && isMiddleStraight && isRingStraight && isPinkyStraight;
+
+    const isPointingDown = indexTip.y > indexMCP.y + 0.15 * handScale;
+
+    const dxHoriz = Math.abs(indexTip.x - indexMCP.x);
+    const dyHoriz = Math.abs(indexTip.y - indexMCP.y);
+    const isHorizontal = !isPointingDown && dxHoriz > dyHoriz * 1.1;
+
+    const isCrossed = (indexTip.x > middleTip.x && indexMCP.x < middleMCP.x) || (indexTip.x < middleTip.x && indexMCP.x > middleMCP.x);
 
     let indexDisplacementX = 0, indexDisplacementY = 0;
     let pinkyDisplacementX = 0, pinkyDisplacementY = 0;
@@ -295,17 +389,22 @@ export class MediaPipeASLClassifier {
 
     let detected = 'A';
 
-    if (isPointingDown && isIndexOpen) {
-      if (isMiddleOpen) detected = 'P';
+    if (isCrossed && isIndexOpen && isMiddleExtendedAlongsideIndex && !isRingOpen && !isPinkyOpen) {
+      detected = 'R';
+    } else if (isPointingStraightUpB) {
+      if (normThumbIndex < 0.32 && normThumbMiddle < 0.35) detected = 'O';
+      else detected = 'B';
+    } else if (isPointingDown && isIndexOpen) {
+      if (isMiddleExtendedAlongsideIndex) detected = 'P';
       else detected = 'Q';
     } else if (isHorizontal && isIndexOpen && !isRingOpen && !isPinkyOpen) {
-      if (isMiddleOpen && normIndexMiddle < 0.35) detected = 'H';
+      if (isMiddleExtendedAlongsideIndex) detected = 'H';
       else detected = 'G';
     } else if (
-      normThumbIndex >= 0.38 && normThumbIndex <= 1.25 &&
-      normThumbMiddle >= 0.38 && normThumbMiddle <= 1.25 &&
-      extIndex >= 1.05 && extMiddle >= 1.05 &&
-      extRing >= 0.75 && !isPointingDown
+      !isPointingDown &&
+      normThumbIndex >= 0.25 && normThumbIndex <= 1.28 &&
+      extThumb > 0.50 &&
+      extIndex >= 0.75
     ) {
       detected = 'C';
     } else if (extIndex < 0.98 && extMiddle < 0.98 && extRing < 0.98 && extPinky < 0.98) {
@@ -324,34 +423,20 @@ export class MediaPipeASLClassifier {
         detected = 'E';
       } else if (distThumbPinkyMCP < 0.42 || (distThumbPinkyMCP < distThumbMiddleMCP && distThumbRingMCP < 0.40)) {
         detected = 'M';
-      } else if (distThumbRingMCP < 0.40 && distThumbMiddleMCP < distThumbPinkyMCP) {
+      } else if (distThumbRingMCP < 0.40 && distThumbMiddleMCP < distPinkyMCP) {
         detected = 'N';
-      } else if (distThumbIndexMCP < 0.44 || (distThumbMiddleMCP < 0.44 && distThumbIndexMCP < distThumbRingMCP)) {
+      } else if (distThumbIndexMCP < 0.44 || (distThumbMiddleMCP < 0.44 && distThumbIndexMCP < distRingMCP)) {
         detected = 'T';
       } else {
         detected = 'A';
       }
-    } else if (isIndexStraight && isMiddleStraight && isRingStraight && isPinkyStraight) {
-      if (normThumbIndex < 0.32 && normThumbMiddle < 0.35) detected = 'O';
-      else detected = 'B';
-    } else if (isIndexOpen && isMiddleOpen && isRingOpen && !isPinkyOpen) {
+    } else if (isIndexOpen && isMiddleExtendedAlongsideIndex && isRingOpen && !isPinkyOpen) {
       detected = 'W';
-    } else if (!isIndexOpen && isMiddleOpen && isRingOpen && isPinkyOpen && normThumbIndex < 0.4) {
+    } else if (!isIndexOpen && isMiddleExtendedAlongsideIndex && isRingOpen && isPinkyOpen && normThumbIndex < 0.4) {
       detected = 'F';
-    } else if (isIndexOpen && isMiddleOpen && !isRingOpen && !isPinkyOpen) {
-      const isCrossed = (indexTip.x > middleTip.x && indexMCP.x < middleMCP.x) || (indexTip.x < middleTip.x && indexMCP.x > middleMCP.x);
-      if (isCrossed) {
-        detected = 'R';
-      } else if (normThumbMiddle < 0.38 || this.dist(thumbTip, middlePIP) / handScale < 0.38) {
-        detected = 'K';
-      } else if (normIndexMiddle < 0.24) {
-        detected = 'U';
-      } else {
-        detected = 'V';
-      }
-    } else if (extIndex >= 1.02 && isIndexHooked && !isMiddleOpen && !isRingOpen && !isPinkyOpen) {
+    } else if (extIndex >= 1.02 && isIndexHooked && !isMiddleExtendedAlongsideIndex && !isRingOpen && !isPinkyOpen) {
       detected = 'X';
-    } else if (!isIndexOpen && !isMiddleOpen && !isRingOpen && isPinkyOpen) {
+    } else if (!isIndexOpen && !isMiddleExtendedAlongsideIndex && !isRingOpen && isPinkyOpen) {
       const isThumbOutY = (normThumbIndex > 0.42 || normThumbMiddle > 0.42) && normThumbPinky > 0.55 && extThumb > 0.65;
       const isJTracingMotion = pinkyDisplacementX > 0.06 && pinkyDisplacementY > 0.06 && pinkyDisplacementX + pinkyDisplacementY > 0.12;
 
@@ -362,14 +447,14 @@ export class MediaPipeASLClassifier {
       } else {
         detected = 'I';
       }
-    } else if (isIndexOpen && !isMiddleOpen && !isRingOpen && !isPinkyOpen && extThumb > 0.88 && normThumbIndex > 0.58 && normThumbMiddle > 0.48) {
+    } else if (isIndexOpen && !isMiddleExtendedAlongsideIndex && !isRingOpen && !isPinkyOpen && extThumb > 0.88 && normThumbIndex > 0.58 && normThumbMiddle > 0.48) {
       const isZTracingMotion = indexDisplacementX > 0.06 && indexDisplacementY > 0.06 && indexDisplacementX + indexDisplacementY > 0.12;
       if (isZTracingMotion) {
         detected = 'Z';
       } else {
         detected = 'L';
       }
-    } else if (isIndexOpen && !isMiddleOpen && !isRingOpen && !isPinkyOpen) {
+    } else if (isIndexOpen && !isMiddleExtendedAlongsideIndex && !isRingOpen && !isPinkyOpen) {
       const isZTracingMotion = indexDisplacementX > 0.06 && indexDisplacementY > 0.06 && indexDisplacementX + indexDisplacementY > 0.12;
       if (isZTracingMotion) {
         detected = 'Z';
