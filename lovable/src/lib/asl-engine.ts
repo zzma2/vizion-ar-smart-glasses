@@ -80,7 +80,7 @@ export class MediaPipeASLClassifier {
 
     const normThumbIndex = Math.sqrt(Math.pow(thumbTip.x - indexTip.x, 2) + Math.pow(thumbTip.y - indexTip.y, 2)) / handScale;
 
-    // 拦截 C 弧形弯曲手型
+    // 拦截 C 弧形弯曲手型 -> 直通字母分类器
     const indexCurvature = this.dist(indexTip, indexMCP) / handScale;
     const isCHandshapePattern = indexCurvature < 0.74 && normThumbIndex >= 0.28 && normThumbIndex <= 1.25;
 
@@ -97,7 +97,7 @@ export class MediaPipeASLClassifier {
       normThumbIndex > 0.38 &&
       indexTip.y < wrist.y + 0.05 * handScale;
 
-    // A. "THANK YOU"
+    // A. "THANK YOU" (起于嘴唇/下巴，向下方/前方延伸)
     if (isFlatOpenHand && history && history.length >= 2) {
       const oldest = history[0].landmarks;
       if (oldest && oldest[8]) {
@@ -109,8 +109,8 @@ export class MediaPipeASLClassifier {
       }
     }
 
-    // B. "HELLO"
-    if (isFlatOpenHand && indexTip.y < 0.28 && wrist.y < 0.38) {
+    // B. "HELLO" (高举于太阳穴/额头高位：wrist.y < 0.50 或 indexTip.y < 0.38)
+    if (isFlatOpenHand && (indexTip.y < 0.38 || wrist.y < 0.50)) {
       if (history && history.length >= 2) {
         const oldest = history[0].landmarks;
         if (oldest && oldest[8]) {
@@ -123,11 +123,12 @@ export class MediaPipeASLClassifier {
       return "HELLO";
     }
 
-    // C. "MY" (我的) - 斜向上姿态
+    // C. "MY" (胸前位置：wrist.y >= 0.50 且呈斜向上姿态)
+    // 强制要求位于中胸高度 (wrist.y >= 0.50)，严禁在太阳穴/头部高位 (wrist.y < 0.50) 触发 MY！
     const dy = wrist.y - middleTip.y;
     const dx = Math.abs(middleTip.x - wrist.x);
     const isDiagonallyUpward = dy > 0.08 * handScale && dx >= 0.45 * dy;
-    const isChestHeight = wrist.y >= 0.35 && wrist.y <= 0.88;
+    const isChestHeight = wrist.y >= 0.50 && wrist.y <= 0.90;
 
     if (isFlatOpenHand && isDiagonallyUpward && isChestHeight) {
       return "MY";
@@ -198,58 +199,41 @@ export class MediaPipeASLClassifier {
     const normThumbMiddle = this.dist(thumbTip, middleTip) / handScale;
     const normThumbPinky = this.dist(thumbTip, pinkyTip) / handScale;
 
-    // 核心算法：中指相对于食指的相对伸展比例 (绝杀单指 vs 双指！)
-    // 当中指伸展长度达到食指的 82% 以上时，为双指 (H / P)
-    // 当中指收起长度小于食指的 82% 时，为单指 (G / Q)
     const isMiddleExtendedAlongsideIndex = (extMiddle > 1.08) && (extMiddle >= extIndex * 0.82);
 
     const dyUp = wrist.y - middleTip.y;
     const dxUp = Math.abs(middleTip.x - wrist.x);
     const isPointingStraightUpB = dyUp > 0.10 * handScale && dxUp < 0.42 * dyUp && isIndexStraight && isMiddleStraight && isRingStraight && isPinkyStraight;
 
-    // P 与 Q：手指朝下 / 斜向下
     const isPointingDown = indexTip.y > indexMCP.y + 0.15 * handScale;
 
-    // H 与 G：手指横向延伸 across screen
     const dxHoriz = Math.abs(indexTip.x - indexMCP.x);
     const dyHoriz = Math.abs(indexTip.y - indexMCP.y);
     const isHorizontal = !isPointingDown && dxHoriz > dyHoriz * 1.1;
 
-    // R：食指与中指交叉
     const isCrossed = (indexTip.x > middleTip.x && indexMCP.x < middleMCP.x) || (indexTip.x < middleTip.x && indexMCP.x > middleMCP.x);
 
     let detected = 'A';
 
-    // 1. R：交叉指型
     if (isCrossed && isIndexOpen && isMiddleExtendedAlongsideIndex && !isRingOpen && !isPinkyOpen) {
       detected = 'R';
-    }
-    // 2. B / O：垂直向上
-    else if (isPointingStraightUpB) {
+    } else if (isPointingStraightUpB) {
       if (normThumbIndex < 0.32 && normThumbMiddle < 0.35) detected = 'O';
       else detected = 'B';
-    }
-    // 3. 指向下方：P (双指中指齐伸) vs Q (单指中指收起)
-    else if (isPointingDown && isIndexOpen) {
+    } else if (isPointingDown && isIndexOpen) {
       if (isMiddleExtendedAlongsideIndex) detected = 'P';
       else detected = 'Q';
-    }
-    // 4. 横向放置：H (双指中指齐伸，匹配照片1) vs G (单指中指收起，匹配照片2)
-    else if (isHorizontal && isIndexOpen && !isRingOpen && !isPinkyOpen) {
+    } else if (isHorizontal && isIndexOpen && !isRingOpen && !isPinkyOpen) {
       if (isMiddleExtendedAlongsideIndex) detected = 'H';
       else detected = 'G';
-    }
-    // 5. C：大拇指张开形成 C 弧口
-    else if (
+    } else if (
       !isPointingDown &&
       normThumbIndex >= 0.25 && normThumbIndex <= 1.28 &&
       extThumb > 0.50 &&
       extIndex >= 0.75
     ) {
       detected = 'C';
-    }
-    // 6. 握拳与三指结构
-    else if (extIndex < 0.98 && extMiddle < 0.98 && extRing < 0.98 && extPinky < 0.98) {
+    } else if (extIndex < 0.98 && extMiddle < 0.98 && extRing < 0.98 && extPinky < 0.98) {
       const distThumbIndexPIP = this.dist(thumbTip, indexPIP) / handScale;
       const distThumbMiddlePIP = this.dist(thumbTip, middlePIP) / handScale;
       const distThumbRingPIP = this.dist(thumbTip, ringPIP) / handScale;
