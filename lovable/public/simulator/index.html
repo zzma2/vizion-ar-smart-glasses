@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vizion — AR Smart Glasses Waveguide Optics Simulator</title>
+  <meta name="description" content="Vizion by New Talk: Ultra-low latency (<200ms) Speech-to-AR Subtitles & MediaPipe 21-Node ASL Alphabet Sign Smart Glasses OS.">
+  
+  <!-- PWA & Mobile Standalone App Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Vizion AR">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#020617">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f453.png">
+  
+  <!-- MediaPipe Hands & Camera Utils & QRious CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+  <div class="app-container">
+
+    <!-- Futuristic Header Navbar -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </div>
+        <div class="brand-title">
+          <h1>VIZION AR HUD <span class="version-tag">SMART GLASSES OPTICS</span></h1>
+          <div class="brand-subtitle">Real-Time Waveguide Subtitles & MediaPipe 21-Node ASL Alphabet</div>
+        </div>
+      </div>
+
+      <!-- Mode Switcher & Mobile QR Share -->
+      <div class="mode-switch-group">
+        <button id="btn-mode-listening" class="mode-btn active">
+          <span class="btn-glow"></span>
+          <span>🎧 Listening</span>
+        </button>
+        <button id="btn-mode-expressing" class="mode-btn">
+          <span class="btn-glow"></span>
+          <span>🖐️ Expressing</span>
+        </button>
+        <button id="btn-qr-share" class="mode-btn" title="Scan QR Code to Open on Mobile">
+          <span class="btn-glow"></span>
+          <span>📱 Mobile QR</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Floating Mobile Language Selector Bar -->
+    <div class="hud-language-bar">
+      <div class="language-selector-box">
+        <label for="select-source-lang">Spoken:</label>
+        <select id="select-source-lang" class="select-custom"></select>
+      </div>
+      <div class="language-selector-box">
+        <label for="select-target-lang">HUD Subtitle:</label>
+        <select id="select-target-lang" class="select-custom"></select>
+      </div>
+    </div>
+
+    <!-- Main AR Optics Stage (Single Column Full-Screen Simulation) -->
+    <main class="main-grid full-optics-stage">
+
+      <!-- Viewport & Optics HUD Card -->
+      <section class="glasses-viewport-card">
+
+        <!-- Simulated Lens Optical Viewport -->
+        <div id="glasses-lens-frame" class="glasses-lens-frame optics-expanded-frame">
+
+          <!-- Sci-Fi HUD Corner Reticles -->
+          <div class="hud-corner top-left"></div>
+          <div class="hud-corner top-right"></div>
+          <div class="hud-corner bottom-left"></div>
+          <div class="hud-corner bottom-right"></div>
+
+          <!-- Background Waveguide Optics Grid & Glare -->
+          <div class="waveguide-grid"></div>
+          <div class="optics-lens-reflection"></div>
+
+          <!-- Video Stream & Canvas Layer -->
+          <div class="cam-container">
+            <video id="camera-video" playsinline muted></video>
+            <canvas id="skeleton-canvas" class="skeleton-canvas"></canvas>
+          </div>
+
+          <!-- AR Palm Guide Tag Overlay -->
+          <div id="ar-palm-guide-tag" class="hud-palm-guide-tag">
+            <span>💡 Mobile Rear Cam Guide: C, G, H, O, P, Q, X turned 180°; Palm Facing for others</span>
+          </div>
+
+          <!-- Eye Contact Target Reticle -->
+          <div class="eye-contact-target">
+            <div class="reticle-ring"></div>
+            <span>AR GLASSES EYE FOV 10°</span>
+          </div>
+
+          <!-- Listening Mode: 2-Line Rolling Subtitle Box -->
+          <div id="hud-subtitle-box" class="hud-subtitle-container">
+            <div id="hud-speaker-tag" class="hud-speaker-tag" style="display:none;"></div>
+            <div class="hud-subtitle-lines">
+              <div id="hud-line-previous" class="hud-line previous"></div>
+              <div id="hud-line-current" class="hud-line current">Listening for speech...</div>
+              <div id="translated-sub-tag" class="translated-sub-tag" style="display:none;"></div>
+            </div>
+          </div>
+
+          <!-- Expressing Mode: Real-Time ASL Alphabet & Word Builder Output Card -->
+          <div id="sign-speech-card" class="sign-speech-card" style="display:none;">
+            <!-- Row 1: Header Title & Action Buttons -->
+            <div class="asl-card-header">
+              <small class="asl-card-title">🖐️ ASL WORD BUILDER</small>
+              <div class="asl-card-actions">
+                <button id="btn-backspace-asl" class="btn-mini">⌫ Delete</button>
+                <button id="btn-clear-asl-buffer" class="btn-mini danger-mini">Clear</button>
+              </div>
+            </div>
+
+            <!-- Row 2: Badge, Buffer, Speak Button -->
+            <div class="asl-card-body">
+              <div class="asl-badge-buffer-group">
+                <div id="detected-letter-badge" class="detected-letter-badge">A</div>
+                <div id="asl-spelling-buffer" class="asl-spelling-buffer">HELLO</div>
+              </div>
+              <button id="btn-speak-asl-buffer" class="btn-speak-trigger" title="Speak Word Buffer via TTS">
+                <span>🔊 Speak</span>
+              </button>
+            </div>
+
+            <!-- Row 3: 100% Full Width Sentence Output -->
+            <div class="asl-card-footer">
+              <div id="sign-speech-text" class="sign-speech-text">"Hello! It is wonderful to meet you today."</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Sleek Minimal Controls Toolbar -->
+        <div class="hud-controls-toolbar">
+          <button id="btn-mic-toggle" class="btn-hud-action">
+            <span>🎤 Mic: Off</span>
+          </button>
+          <button id="btn-cam-toggle" class="btn-hud-action">
+            <span>📷 Cam: Off</span>
+          </button>
+          <button id="btn-flip-cam" class="btn-hud-action">
+            <span>🔄 Flip Cam</span>
+          </button>
+        </div>
+
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- 1. ONBOARDING WIZARD MODAL -->
+  <div id="modal-onboarding" class="modal-overlay">
+    <div class="modal-card onboarding-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>✨ Welcome to Vizion OS Smart Glasses</span>
+        </div>
+        <button id="btn-close-onboarding" class="btn-close">&times;</button>
+      </div>
+
+      <div class="onboarding-steps">
+        <div class="onboarding-step active" data-step="1">
+          <div class="step-icon">👓</div>
+          <h3>Step 1: Connect Smart Glasses HUD</h3>
+          <p>Pair your waveguide AR glasses via Bluetooth Low Energy (BLE) or use this web optics simulator to preview dual-line real-time captions.</p>
+        </div>
+
+        <div class="onboarding-step" data-step="2" style="display:none;">
+          <div class="step-icon">🎧</div>
+          <h3>Step 2: Speech-to-AR Subtitles</h3>
+          <p>Real-time speech recognition translates spoken audio into your target language on the HUD within 142ms latency SLA.</p>
+        </div>
+
+        <div class="onboarding-step" data-step="3" style="display:none;">
+          <div class="step-icon">🖐️</div>
+          <h3>Step 3: MediaPipe ASL Alphabet (A–Z)</h3>
+          <p>Use MediaPipe 21-Node AI Vision tracking to translate ASL fingerspelling letters and build words into natural spoken voice audio.</p>
+        </div>
+      </div>
+
+      <div class="onboarding-footer">
+        <div class="step-dots">
+          <span class="dot active" data-step="1"></span>
+          <span class="dot" data-step="2"></span>
+          <span class="dot" data-step="3"></span>
+        </div>
+        <div style="display:flex; gap:10px">
+          <button id="btn-onboarding-prev" class="btn-hud-action" style="display:none;">Previous</button>
+          <button id="btn-onboarding-next" class="btn-hud-action highlight-btn">Next Step &rrarr;</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. CHECKOUT & SUBSCRIPTION PAYWALL MODAL -->
+  <div id="modal-checkout" class="modal-overlay">
+    <div class="modal-card checkout-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>💙 Vizion Community Accessibility Pass</span>
+        </div>
+        <button id="btn-close-checkout" class="btn-close">&times;</button>
+      </div>
+
+      <div style="font-size:12px; color:#94a3b8; line-height:1.5">
+        <strong>Deaf Community Accessibility Promise:</strong> We provide at-cost, non-profit pricing to break even on cloud AI compute & optical hardware manufacturing.
+      </div>
+
+      <div class="pricing-plans">
+        <div class="pricing-card active" data-plan="pro">
+          <div class="plan-badge">AT-COST</div>
+          <h3>Vizion Impact Pass</h3>
+          <div class="plan-price">$4.99 <span>/ month</span></div>
+          <ul>
+            <li>✓ Covers server cloud compute & API costs</li>
+            <li>✓ Unlimited Gemini Neural Translation</li>
+            <li>✓ MediaPipe 21-Node ASL Alphabet Engine</li>
+            <li>✓ Sub-150ms Low-Latency SLA Queue</li>
+          </ul>
+          <button class="btn-hud-action highlight-btn btn-plan-select" data-plan="pro">Get Impact Pass ($4.99/mo)</button>
+        </div>
+
+        <div class="pricing-card" data-plan="hardware">
+          <div class="plan-badge" style="background:#8b5cf6">HARDWARE AT COST</div>
+          <h3>Smart Glasses Hardware</h3>
+          <div class="plan-price">$199 <span>one-time</span></div>
+          <ul>
+            <li>✓ Direct manufacturing cost for DHH community</li>
+            <li>✓ 1x Vizion Waveguide AR Smart Glasses</li>
+            <li>✓ Integrated HD Camera & Noise-Cancel Mic Array</li>
+            <li>✓ Lifetime Free Basic Service Included</li>
+          </ul>
+          <button class="btn-hud-action btn-plan-select" data-plan="hardware">Pre-Order Hardware ($199)</button>
+        </div>
+      </div>
+
+      <div class="checkout-form-container">
+        <div style="font-size:13px; font-weight:600; margin-bottom:8px; color:var(--hud-primary)">Payment Information (At-Cost Checkout)</div>
+        <div class="checkout-form">
+          <input type="text" class="input-gcp-key" placeholder="Cardholder Name" value="Alex Morgan">
+          <input type="text" class="input-gcp-key" placeholder="Card Number (4242 •••• •••• 4242)" value="4242 •••• •••• 4242">
+          <div style="display:flex; gap:10px">
+            <input type="text" class="input-gcp-key" placeholder="MM/YY" value="12/28">
+            <input type="text" class="input-gcp-key" placeholder="CVC" value="888">
+          </div>
+          <button id="btn-confirm-checkout" class="btn-hud-action highlight-btn" style="width:100%; margin-top:8px; padding:12px">
+            Complete Order ($4.99 / Mo)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. VIRAL SHARE LOOP MODAL -->
+  <div id="modal-share" class="modal-overlay">
+    <div class="modal-card share-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>🔗 Share Vizion HUD Session</span>
+        </div>
+        <button id="btn-close-share" class="btn-close">&times;</button>
+      </div>
+
+      <div class="share-content">
+        <p style="font-size:13px; color:#cbd5e1">Invite conversation partners or healthcare providers to connect to your live AR subtitle session.</p>
+
+        <!-- Session Link Copy Box -->
+        <div class="share-link-box">
+          <input id="input-share-link" type="text" class="input-gcp-key" readonly value="https://vizion.newtalk.ai/session/live-hud-8842">
+          <button id="btn-copy-link" class="btn-hud-action highlight-btn">Copy Link</button>
+        </div>
+
+        <!-- Dynamic QR Code & Badge -->
+        <div class="qr-code-container">
+          <div class="qr-placeholder" style="background:#ffffff; padding:10px; border-radius:12px; display:inline-block">
+            <img id="qr-code-img" width="140" height="140" src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https%3A%2F%2Fvizion-ar.vercel.app" alt="Vizion OS AR HUD QR Code" style="display:block; border-radius:6px">
+          </div>
+          <div style="font-size:12px; color:#94a3b8; text-align:center; margin-top:6px">Scan with smartphone camera to open live AR translation session</div>
+        </div>
+
+        <div class="share-actions">
+          <button class="btn-hud-action" id="btn-share-social">Share to Social</button>
+          <button class="btn-hud-action" id="btn-download-card">Download HUD Summary</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. 3D INTERACTIVE SMART GLASSES VIEWER MODAL -->
+  <div id="modal-3d-glasses" class="modal-overlay">
+    <div class="modal-card glasses-3d-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>👓 3D Interactive Smart Glasses Frame Viewer</span>
+        </div>
+        <button id="btn-close-3d-glasses" class="btn-close">&times;</button>
+      </div>
+
+      <div class="glasses-3d-stage" id="glasses-3d-stage">
+        <div class="glasses-3d-wrapper" id="glasses-3d-wrapper">
+          <div class="glasses-arm left"></div>
+          <div class="glasses-front">
+            <div class="glasses-lens left-lens">
+              <div class="ar-hud-projection">VIZION AR HUD 1080P</div>
+            </div>
+            <div class="glasses-bridge"></div>
+            <div class="glasses-lens right-lens">
+              <div class="ar-hud-projection">SLA LATENCY 142MS</div>
+            </div>
+          </div>
+          <div class="glasses-arm right"></div>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px">
+        <small style="color:#94a3b8">Drag mouse / swipe touch to rotate glasses 360°</small>
+        <button id="btn-reset-3d-view" class="btn-hud-action">Reset Camera View</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dedicated GCP Agent Platform ADC Modal -->
+  <div id="modal-gcp-settings" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>☁️ GCP Agent Platform (Gemini 3.6 Flash)</span>
+        </div>
+        <button id="btn-close-gcp-modal" class="btn-close">&times;</button>
+      </div>
+
+      <div style="font-size:13px; color:#cbd5e1; line-height:1.5">
+        Power Vizion Agent Platform using your <strong>$300 Google Cloud Developer Credits</strong> via <strong>Gemini 3.6 Flash</strong> & Application Default Credentials (ADC)!
+      </div>
+
+      <div class="gcp-feature-item" style="border-left-color:var(--hud-primary); flex-direction:column; gap:6px">
+        <strong style="color:var(--hud-primary)">📋 How to get your ADC Token on Windows:</strong>
+        <ol style="margin-left:20px; font-size:12px; color:#94a3b8; line-height:1.6">
+          <li>Install Google Cloud SDK or run: <code style="color:#60a5fa">gcloud auth application-default login</code></li>
+          <li>Log in with your $300 Google Cloud account in browser.</li>
+          <li>Run: <code style="color:#60a5fa">gcloud auth application-default print-access-token</code></li>
+          <li>Copy the generated token (`ya29...`) and paste it below!</li>
+        </ol>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div>
+          <label for="input-gcp-project" style="font-size:11px; color:#94a3b8; font-family:var(--font-mono)">GCP PROJECT ID:</label>
+          <input id="input-gcp-project" type="text" class="input-gcp-key" placeholder="e.g. vizion-smart-glasses-45210">
+        </div>
+
+        <div>
+          <label for="input-gcp-adc" style="font-size:11px; color:#94a3b8; font-family:var(--font-mono)">ADC BEARER TOKEN (ya29...):</label>
+          <input id="input-gcp-adc" type="password" class="input-gcp-key" placeholder="Paste generated token (starts with ya29...)">
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+        <small style="color:#64748b; font-size:11px">Local Edge AI fallback remains active when unconfigured.</small>
+        <button id="btn-save-gcp-key" class="btn-hud-action" style="background:var(--hud-primary); color:#000; border:none; font-weight:700">
+          Save ADC Token
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile QR Code Share Modal Overlay -->
+  <div id="modal-qr-share" class="modal-overlay" style="display:none;">
+    <div class="modal-card gcp-modal-card" style="max-width:380px;">
+      <div class="modal-header">
+        <h3 style="display:flex; align-items:center; gap:6px;">📱 Mobile QR Code Share</h3>
+        <button id="btn-close-qr-modal" class="btn-close-modal">✕</button>
+      </div>
+
+      <div style="display:flex; flex-direction:column; align-items:center; gap:14px; margin-top:12px; text-align:center;">
+        <p style="font-size:12px; color:#94a3b8; margin:0; line-height:1.5;">
+          Scan with your iPhone or Android camera to open <strong>Power Vizion AR Smart Glasses</strong> on your phone!
+        </p>
+        
+        <div id="qr-code-container" style="background:#ffffff; padding:14px; border-radius:16px; box-shadow:0 8px 32px rgba(0,255,163,0.25); display:flex; justify-content:center; align-items:center; min-width:210px; min-height:210px;">
+          <canvas id="qr-code-canvas" width="200" height="200" style="display:block; width:200px; height:200px; border-radius:8px;"></canvas>
+        </div>
+
+        <div style="display:flex; gap:6px; width:100%; align-items:center;">
+          <input id="input-share-url" type="text" class="input-gcp-key" readonly style="flex:1; font-size:11px; text-overflow:ellipsis;" />
+          <button id="btn-copy-share-url" class="btn-hud-action" style="background:var(--hud-primary); color:#000; font-weight:700; padding:8px 12px; border:none; white-space:nowrap;">
+            Copy Link
+          </button>
+        </div>
+
+        <!-- PWA Mobile App Installation Instructions Box -->
+        <div style="background:rgba(15, 23, 42, 0.8); border:1px solid rgba(0, 255, 163, 0.3); border-radius:12px; padding:10px 12px; margin-top:4px; text-align:left; width:100%; box-sizing:border-box;">
+          <div style="font-size:11px; font-weight:700; color:var(--hud-primary); margin-bottom:4px; display:flex; align-items:center; gap:4px;">
+            <span>📲 Install as Standalone Mobile App (PWA)</span>
+          </div>
+          <div style="font-size:10px; color:#cbd5e1; line-height:1.5;">
+            • <strong>iPhone (Safari):</strong> Tap <span style="color:#38bdf8">Share</span> ➔ <strong>'Add to Home Screen'</strong><br/>
+            • <strong>Android (Chrome):</strong> Tap <span style="color:#38bdf8">⋮</span> ➔ <strong>'Install App' / 'Add to Home Screen'</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Standalone JavaScript Application -->
+  <script src="js/app.js"></script>
+</body>
+</html>

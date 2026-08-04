@@ -1,0 +1,1742 @@
+/* Vizion Smart Glasses OS - Design System & Styles */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@400;600;700;800&display=swap');
+
+:root {
+  /* Color Palette */
+  --bg-dark: #07090e;
+  --bg-card: rgba(15, 23, 42, 0.75);
+  --bg-hud: rgba(6, 15, 25, 0.85);
+  
+  /* HUD Micro-LED Emerald Theme (Default) */
+  --hud-primary: #00ffa3;
+  --hud-primary-glow: rgba(0, 255, 163, 0.4);
+  --hud-secondary: #00b8ff;
+  --hud-bg-tint: rgba(0, 255, 163, 0.05);
+  --hud-text: #e2fef4;
+  --hud-dim: rgba(0, 255, 163, 0.6);
+  
+  /* Theme Alternatives */
+  --hud-white-primary: #ffffff;
+  --hud-white-glow: rgba(255, 255, 255, 0.5);
+  --hud-amber-primary: #ffaa00;
+  --hud-amber-glow: rgba(255, 170, 0, 0.4);
+
+  /* Functional Status */
+  --accent-blue: #3b82f6;
+  --accent-purple: #8b5cf6;
+  --accent-pink: #ec4899;
+  --status-active: #10b981;
+  --status-warning: #f59e0b;
+  --status-alert: #ef4444;
+
+  /* HUD Optics & Frame Geometry */
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --hud-border: rgba(0, 255, 163, 0.3);
+  --radius-lg: 20px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+  
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Outfit', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Transitions */
+  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Light / Monochrome Themes */
+[data-hud-theme="white"] {
+  --hud-primary: #ffffff;
+  --hud-primary-glow: rgba(255, 255, 255, 0.5);
+  --hud-secondary: #cbd5e1;
+  --hud-bg-tint: rgba(255, 255, 255, 0.05);
+  --hud-text: #ffffff;
+  --hud-dim: rgba(255, 255, 255, 0.7);
+  --hud-border: rgba(255, 255, 255, 0.4);
+}
+
+[data-hud-theme="amber"] {
+  --hud-primary: #ffb703;
+  --hud-primary-glow: rgba(255, 183, 3, 0.4);
+  --hud-secondary: #fb8500;
+  --hud-bg-tint: rgba(255, 183, 3, 0.05);
+  --hud-text: #fff3d6;
+  --hud-dim: rgba(255, 183, 3, 0.7);
+  --hud-border: rgba(255, 183, 3, 0.4);
+}
+
+/* Base Styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-dark);
+  color: #f8fafc;
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  overflow-x: hidden;
+  background-image: 
+    radial-gradient(circle at 15% 20%, rgba(13, 148, 136, 0.15) 0%, transparent 45%),
+    radial-gradient(circle at 85% 80%, rgba(59, 130, 246, 0.12) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.08) 0%, transparent 60%);
+  background-attachment: fixed;
+}
+
+/* Layout Container */
+.app-container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Header Navbar */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.brand-icon {
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, var(--hud-primary), var(--hud-secondary));
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 20px var(--hud-primary-glow);
+  color: #000;
+  font-weight: 800;
+  font-size: 20px;
+}
+
+.brand-title h1 {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  background: linear-gradient(180deg, #ffffff 0%, #cbd5e1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.brand-subtitle {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+/* Mode Switcher Buttons */
+.mode-switch-group {
+  display: flex;
+  background: rgba(2, 6, 23, 0.7);
+  padding: 4px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border);
+}
+
+.mode-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: #94a3b8;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-normal);
+}
+
+.mode-btn:hover {
+  color: #f8fafc;
+}
+
+.mode-btn.active {
+  background: linear-gradient(135deg, rgba(0, 255, 163, 0.2), rgba(0, 184, 255, 0.2));
+  color: var(--hud-primary);
+  border: 1px solid var(--hud-border);
+  box-shadow: 0 0 16px rgba(0, 255, 163, 0.15);
+}
+
+/* Main Grid Layout */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+.full-optics-stage {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Glass Viewport Area */
+.glasses-viewport-card {
+  background: rgba(11, 19, 36, 0.9);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* HUD Header Bar inside Glasses Frame */
+.hud-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: var(--bg-hud);
+  border: 1px solid var(--hud-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--hud-primary);
+  box-shadow: 0 0 12px var(--hud-bg-tint);
+}
+
+/* AR Palm Guide Floating Toast Tag */
+.hud-palm-guide-tag {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  background: rgba(11, 19, 36, 0.85);
+  border: 1px solid var(--hud-border);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 11px;
+  color: var(--hud-primary);
+  font-family: var(--font-mono);
+  pointer-events: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 12px var(--hud-bg-tint);
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.hud-status-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--hud-primary);
+  box-shadow: 0 0 10px var(--hud-primary);
+  animation: pulse-glow 1.5s infinite alternate;
+}
+
+@keyframes pulse-glow {
+  0% { opacity: 0.4; transform: scale(0.9); }
+  100% { opacity: 1; transform: scale(1.2); }
+}
+
+/* Simulated Optical Lens Frame */
+.glasses-lens-frame {
+  position: relative;
+  width: 100%;
+  height: 520px;
+  background: radial-gradient(ellipse at center, rgba(13, 27, 42, 0.9) 0%, rgba(5, 10, 18, 0.98) 100%);
+  border: 2px solid var(--hud-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: inset 0 0 80px rgba(0, 255, 163, 0.05), 0 0 24px var(--hud-bg-tint);
+}
+
+/* Video Container & Canvas Overlay Layering */
+.cam-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 1;
+}
+
+#camera-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+}
+
+.skeleton-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Modal Overlays & Translucent Glassmorphism Dialog Cards */
+.modal-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(2, 6, 23, 0.85) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  z-index: 99999 !important;
+}
+
+.modal-card {
+  background: rgba(11, 19, 36, 0.95);
+  border: 1px solid var(--hud-border);
+  border-radius: 20px;
+  padding: 24px;
+  width: 90%;
+  max-width: 440px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8), 0 0 24px var(--hud-bg-tint);
+  position: relative;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(0, 255, 163, 0.15);
+  padding-bottom: 12px;
+}
+
+.btn-close-modal {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.btn-close-modal:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Real-Time ASL Word Builder Card Base Rules (Desktop & Mobile) */
+.sign-speech-card {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 580px;
+  background: rgba(6, 20, 32, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--hud-border);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 40;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+}
+
+.asl-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.asl-card-title {
+  color: var(--hud-primary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.asl-card-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.asl-card-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 14px;
+}
+
+.asl-badge-buffer-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.asl-card-footer {
+  width: 100%;
+  border-top: 1px solid rgba(0, 255, 163, 0.2);
+  padding-top: 10px;
+}
+
+.sign-speech-text {
+  width: 100%;
+  font-size: 15px;
+  font-weight: 500;
+  color: #ffffff;
+  line-height: 1.45;
+  text-align: left;
+  word-break: break-word;
+}
+
+/* Mobile Phone Ultra-Clean AR Smart Glasses Simulation */
+@media (max-width: 768px) {
+  body {
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0;
+    padding: 0;
+    width: 100vw;
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: #000000;
+  }
+
+  .app-container {
+    padding: 0;
+    margin: 0;
+    width: 100vw;
+    min-height: 100vh;
+    min-height: 100dvh;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  .full-optics-stage {
+    padding: 0;
+    margin: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    max-width: 100%;
+  }
+
+  /* Top Mode Switcher Header - Fixed Z-Index Layering */
+  .app-header {
+    position: fixed !important;
+    top: 12px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    z-index: 9999 !important;
+    background: rgba(2, 6, 23, 0.85) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border-radius: 24px !important;
+    padding: 4px 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 1px solid rgba(0, 255, 163, 0.3) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8) !important;
+    width: max-content !important;
+  }
+
+  .brand, .brand-subtitle, .header-action-group {
+    display: none !important;
+  }
+
+  .mode-switch-group {
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    display: flex !important;
+    gap: 4px !important;
+  }
+
+  .mode-btn {
+    padding: 6px 14px !important;
+    font-size: 12px !important;
+    border-radius: 16px !important;
+  }
+
+  /* Mobile Language Selector Pill Bar - Positioned at top: 56px with comfortable spacing below Mode Switcher */
+  .hud-language-bar {
+    position: fixed !important;
+    top: 56px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    z-index: 9999 !important;
+    background: rgba(2, 6, 23, 0.85) !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+    border-radius: 16px !important;
+    padding: 3px 8px !important;
+    border: 1px solid rgba(0, 255, 163, 0.25) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.8) !important;
+    width: max-content !important;
+    display: flex !important;
+    gap: 8px !important;
+  }
+
+  .language-selector-box {
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    font-size: 10px !important;
+    color: var(--hud-primary) !important;
+  }
+
+  .language-selector-box label {
+    font-size: 10px !important;
+    font-weight: 600 !important;
+  }
+
+  .language-selector-box select {
+    font-size: 10px !important;
+    padding: 2px 4px !important;
+    background: rgba(15, 23, 42, 0.8) !important;
+    border: 1px solid var(--glass-border) !important;
+    border-radius: 8px !important;
+    color: #ffffff !important;
+  }
+
+  /* Hide status bar, eye reticle & AR toast tag on mobile for 100% clean view */
+  .hud-status-bar, .eye-contact-target, .hud-palm-guide-tag {
+    display: none !important;
+  }
+
+  /* 100% Full-Screen Optical Stage Layer */
+  .glasses-viewport-card {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: #000000 !important;
+    box-shadow: none !important;
+    z-index: 10 !important;
+  }
+
+  .glasses-lens-frame {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    border: none !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .cam-container {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    overflow: hidden !important;
+    z-index: 1 !important;
+  }
+
+  #camera-video {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    z-index: 1 !important;
+  }
+
+  .skeleton-canvas {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    z-index: 2 !important;
+    pointer-events: none !important;
+  }
+
+  /* Floating Translucent Subtitle HUD Positioned in Upper-Middle Field to Keep Camera Center/Bottom Unobstructed */
+  .hud-subtitle-container {
+    position: fixed !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    top: 96px !important;
+    bottom: auto !important;
+    width: 90vw !important;
+    max-width: 400px !important;
+    padding: 10px 14px !important;
+    background: rgba(2, 6, 23, 0.75) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border-radius: 16px !important;
+    border: 1px solid var(--hud-border) !important;
+    max-height: 25vh !important;
+    overflow-y: auto !important;
+    z-index: 9000 !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8) !important;
+  }
+
+  .hud-line-current {
+    font-size: 14px !important;
+    line-height: 1.35 !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .hud-line-previous {
+    font-size: 11px !important;
+  }
+
+  .translated-subtitle {
+    font-size: 12px !important;
+    word-break: break-word !important;
+  }
+
+  /* Expressing Card Positioned Below Language Bar with ZERO Overlap */
+  .sign-speech-card {
+    position: fixed !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    top: 96px !important;
+    bottom: auto !important;
+    width: 92vw !important;
+    max-width: 420px !important;
+    padding: 10px 14px !important;
+    background: rgba(6, 20, 32, 0.88) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border-radius: 16px !important;
+    border: 1px solid var(--hud-border) !important;
+    max-height: 26vh !important;
+    overflow-y: auto !important;
+    z-index: 9000 !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8) !important;
+    flex-direction: column !important;
+  }
+
+  /* Minimal Translucent Controls Toolbar Floating at Bottom Edge (Single Horizontal Row) */
+  .hud-controls-toolbar {
+    position: fixed !important;
+    bottom: 14px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: 92vw !important;
+    max-width: 360px !important;
+    height: 46px !important;
+    box-sizing: border-box !important;
+    z-index: 9999 !important;
+    background: rgba(2, 6, 23, 0.85) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border-radius: 24px !important;
+    padding: 4px 6px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 4px !important;
+    border: 1px solid rgba(0, 255, 163, 0.3) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8) !important;
+  }
+
+  .scenario-next-btn {
+    display: none !important;
+  }
+
+  .btn-hud-action {
+    padding: 6px 4px !important;
+    font-size: 11px !important;
+    border-radius: 14px !important;
+    background: rgba(15, 23, 42, 0.75) !important;
+    white-space: nowrap !important;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-align: center !important;
+  }
+}
+
+/* Waveguide Optical Grid Lines overlay */
+.waveguide-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: 
+    linear-gradient(to right, rgba(0, 255, 163, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 255, 163, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Eye Contact Focus Target Overlay */
+.eye-contact-target {
+  position: absolute;
+  top: 35%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 160px;
+  height: 100px;
+  border: 1px dashed var(--hud-dim);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0.5;
+  transition: var(--transition-normal);
+}
+
+.eye-contact-target span {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--hud-primary);
+  letter-spacing: 1px;
+  margin-top: 4px;
+}
+
+.translated-sub-tag {
+  display: block !important;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: #60a5fa;
+  margin-top: 6px;
+  padding: 4px 8px;
+  background: rgba(15, 23, 42, 0.7);
+  border-left: 3px solid #3b82f6;
+  border-radius: 4px;
+}
+
+/* HUD 2-Line Rolling Subtitle Box */
+.hud-subtitle-container {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 88%;
+  max-width: 800px;
+  background: var(--bg-hud);
+  border: 1px solid var(--hud-border);
+  border-radius: var(--radius-md);
+  padding: 18px 24px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.8), 0 0 15px var(--hud-bg-tint);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 10;
+}
+
+.hud-speaker-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--hud-primary);
+  background: rgba(0, 255, 163, 0.12);
+  padding: 3px 10px;
+  border-radius: 4px;
+  width: fit-content;
+  letter-spacing: 0.5px;
+}
+
+.hud-subtitle-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 64px;
+  justify-content: flex-end;
+}
+
+.hud-line {
+  font-family: var(--font-sans);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--hud-text);
+  text-shadow: 0 0 10px var(--hud-primary-glow);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.hud-line.previous {
+  font-size: 16px;
+  color: var(--hud-dim);
+  opacity: 0.7;
+}
+
+.hud-line.current {
+  font-size: 22px;
+  color: var(--hud-primary);
+  font-weight: 700;
+}
+
+.translated-sub-tag {
+  font-size: 13px;
+  color: var(--hud-secondary);
+  font-family: var(--font-mono);
+  margin-top: 4px;
+  font-style: italic;
+}
+
+/* Vision Status Badge */
+.vision-status-badge {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: rgba(6, 15, 25, 0.85);
+  border: 1px solid var(--hud-border);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--hud-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 15;
+  box-shadow: 0 0 12px var(--hud-bg-tint);
+}
+
+.hud-controls-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border);
+}
+
+.btn-hud-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: rgba(30, 41, 59, 0.8);
+  color: #f8fafc;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.btn-hud-action:hover {
+  background: rgba(51, 65, 85, 1);
+  border-color: var(--hud-primary);
+}
+
+.btn-hud-action.active-mic {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: var(--status-alert);
+  color: #fca5a5;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
+}
+
+.btn-hud-action.active-cam {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: var(--status-active);
+  color: #6ee7b7;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+}
+
+/* Language Selection Bar */
+.language-selector-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.select-custom {
+  background: rgba(15, 23, 42, 0.9);
+  color: #f8fafc;
+  border: 1px solid var(--glass-border);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+}
+
+.select-custom:focus {
+  border-color: var(--hud-primary);
+}
+
+/* Sidebar & Telemetry Panel */
+.sidebar-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.panel-card {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.panel-title {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #f1f5f9;
+}
+
+/* SLA Latency Gauge */
+.sla-gauge-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gauge-metric-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.gauge-bar-bg {
+  width: 100%;
+  height: 8px;
+  background: rgba(30, 41, 59, 1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.gauge-bar-fill {
+  height: 100%;
+  width: 35%;
+  background: linear-gradient(90deg, var(--hud-primary), var(--hud-secondary));
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.sla-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--status-active);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+/* Video & Canvas overlays */
+.cam-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.35;
+  filter: contrast(1.1) brightness(0.9);
+}
+
+.skeleton-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* Scenario Buttons */
+.scenario-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.scenario-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: var(--transition-fast);
+}
+
+.scenario-btn:hover {
+  background: rgba(51, 65, 85, 0.8);
+  color: #ffffff;
+  border-color: var(--hud-primary);
+}
+
+/* Google Cloud & Vertex AI Integration Styles */
+.gcp-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, rgba(66, 133, 244, 0.2), rgba(219, 68, 85, 0.2));
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.gcp-badge:hover {
+  background: linear-gradient(135deg, rgba(66, 133, 244, 0.35), rgba(219, 68, 85, 0.35));
+  box-shadow: 0 0 12px rgba(96, 165, 250, 0.3);
+}
+
+/* Modal Window overlay */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-card {
+  background: #0f172a;
+  border: 1px solid var(--hud-border);
+  border-radius: var(--radius-lg);
+  width: 90%;
+  max-width: 580px;
+  padding: 24px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 255, 163, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--glass-border);
+  padding-bottom: 12px;
+}
+
+.modal-title {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-close {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.btn-close:hover {
+  color: #ffffff;
+}
+
+.input-gcp-key {
+  width: 100%;
+  background: rgba(2, 6, 23, 0.9);
+  border: 1px solid var(--glass-border);
+  color: #ffffff;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  outline: none;
+}
+
+.input-gcp-key:focus {
+  border-color: var(--hud-primary);
+}
+
+.gcp-feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: #cbd5e1;
+  background: rgba(30, 41, 59, 0.4);
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid #3b82f6;
+}
+
+.hotword-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: rgba(59, 130, 246, 0.15);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+/* Speech Card for Sign Output */
+.sign-speech-card {
+  position: absolute;
+  bottom: 25px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 760px;
+  max-height: 250px;
+  background: rgba(6, 20, 32, 0.92);
+  border: 1px solid var(--hud-primary);
+  border-radius: var(--radius-md);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--hud-text);
+  font-family: var(--font-sans);
+  box-shadow: 0 0 24px rgba(0, 255, 163, 0.25);
+  backdrop-filter: blur(14px);
+  z-index: 15;
+  overflow-y: auto;
+}
+
+.sign-speech-text {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.4;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+
+/* ==========================================
+ * SPRINT I NEW STYLES
+ * ========================================== */
+
+/* Header Action Group */
+.header-action-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.highlight-btn {
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6) !important;
+  color: #ffffff !important;
+  border: none !important;
+  font-weight: 700 !important;
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.4) !important;
+}
+
+.highlight-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 18px rgba(139, 92, 246, 0.6) !important;
+}
+
+/* ASL Alphabet A-Z Grid */
+.asl-alphabet-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+}
+
+.asl-letter-btn {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid var(--glass-border);
+  color: var(--hud-primary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 4px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: center;
+  transition: var(--transition-fast);
+}
+
+.asl-letter-btn:hover {
+  background: rgba(0, 255, 163, 0.2);
+  border-color: var(--hud-primary);
+  transform: scale(1.05);
+}
+
+/* ASL Spelling Buffer */
+.asl-spelling-buffer {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--hud-primary);
+  letter-spacing: 2px;
+  background: rgba(2, 6, 23, 0.6);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 4px;
+  border: 1px dashed var(--hud-border);
+  display: inline-block;
+  max-width: 100%;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
+.btn-mini {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* Onboarding Wizard Modal */
+.onboarding-card {
+  max-width: 520px;
+}
+
+.onboarding-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 16px 0;
+}
+
+.onboarding-step {
+  text-align: center;
+  padding: 20px;
+  background: rgba(30, 41, 59, 0.4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border);
+}
+
+.onboarding-step .step-icon {
+  font-size: 44px;
+  margin-bottom: 12px;
+}
+
+.onboarding-step h3 {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  color: #ffffff;
+  margin-bottom: 8px;
+}
+
+.onboarding-step p {
+  font-size: 13px;
+  color: #94a3b8;
+  line-height: 1.6;
+}
+
+.onboarding-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.step-dots {
+  display: flex;
+  gap: 8px;
+}
+
+.step-dots .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #334155;
+  transition: var(--transition-fast);
+}
+
+.step-dots .dot.active {
+  background: var(--hud-primary);
+  box-shadow: 0 0 10px var(--hud-primary);
+  width: 24px;
+  border-radius: 6px;
+}
+
+/* Checkout & Subscription Paywall */
+.checkout-card {
+  max-width: 680px;
+}
+
+.pricing-plans {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 12px 0;
+}
+
+@media (max-width: 640px) {
+  .pricing-plans {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pricing-card {
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  transition: var(--transition-normal);
+}
+
+.pricing-card.active {
+  border-color: var(--hud-primary);
+  box-shadow: 0 0 20px rgba(0, 255, 163, 0.2);
+  background: rgba(6, 24, 38, 0.95);
+}
+
+.plan-badge {
+  position: absolute;
+  top: -10px;
+  right: 16px;
+  background: var(--hud-primary);
+  color: #000;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 10px;
+}
+
+.pricing-card h3 {
+  font-size: 16px;
+  color: #ffffff;
+}
+
+.plan-price {
+  font-family: var(--font-heading);
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--hud-primary);
+}
+
+.plan-price span {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.pricing-card ul {
+  list-style: none;
+  font-size: 12px;
+  color: #cbd5e1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.checkout-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(2, 6, 23, 0.6);
+  padding: 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border);
+}
+
+/* Share Loop Modal */
+.share-card {
+  max-width: 480px;
+}
+
+.share-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.share-link-box {
+  display: flex;
+  gap: 8px;
+}
+
+.qr-code-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  background: rgba(2, 6, 23, 0.8);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border);
+}
+
+.share-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.share-actions button {
+  flex: 1;
+}
+
+/* 3D Glasses Viewer Stage */
+.glasses-3d-card {
+  max-width: 640px;
+}
+
+.glasses-3d-stage {
+  height: 240px;
+  background: radial-gradient(circle, rgba(15, 23, 42, 0.9) 0%, rgba(2, 6, 23, 1) 100%);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--hud-border);
+  perspective: 800px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: grab;
+}
+
+.glasses-3d-stage:active {
+  cursor: grabbing;
+}
+
+.glasses-3d-wrapper {
+  position: relative;
+  width: 320px;
+  height: 90px;
+  transform-style: preserve-3d;
+  transform: rotateX(15deg) rotateY(-20deg);
+  transition: transform 0.1s ease-out;
+}
+
+.glasses-front {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.glasses-lens {
+  width: 140px;
+  height: 75px;
+  background: rgba(0, 255, 163, 0.08);
+  border: 4px solid #1e293b;
+  border-radius: 12px 12px 30px 30px;
+  box-shadow: inset 0 0 15px var(--hud-primary-glow), 0 0 15px rgba(0, 0, 0, 0.8);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.ar-hud-projection {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--hud-primary);
+  text-shadow: 0 0 6px var(--hud-primary);
+  opacity: 0.85;
+}
+
+.glasses-bridge {
+  width: 30px;
+  height: 6px;
+  background: #334155;
+  border-radius: 3px;
+}
+
+.glasses-arm {
+  position: absolute;
+  top: 10px;
+  width: 140px;
+  height: 12px;
+  background: #1e293b;
+  border-radius: 4px;
+}
+
+.glasses-arm.left {
+  left: -120px;
+  transform-origin: right center;
+  transform: rotateY(-75deg);
+}
+
+.glasses-arm.right {
+  right: -120px;
+  transform-origin: left center;
+  transform: rotateY(75deg);
+}
+
+/* ==========================================
+ * FUTURISTIC AR OPTICS & MEDIAPIPE STYLES
+ * ========================================== */
+
+.version-tag {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  background: rgba(0, 255, 163, 0.15);
+  color: var(--hud-primary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--hud-border);
+  vertical-align: middle;
+}
+
+/* Sci-Fi Reticle Corners */
+.hud-corner {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--hud-primary);
+  pointer-events: none;
+  z-index: 10;
+  box-shadow: 0 0 10px var(--hud-primary-glow);
+}
+
+.hud-corner.top-left {
+  top: 12px;
+  left: 12px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.hud-corner.top-right {
+  top: 12px;
+  right: 12px;
+  border-left: none;
+  border-bottom: none;
+}
+
+.hud-corner.bottom-left {
+  bottom: 12px;
+  left: 12px;
+  border-right: none;
+  border-top: none;
+}
+
+.hud-corner.bottom-right {
+  bottom: 12px;
+  right: 12px;
+  border-left: none;
+  border-top: none;
+}
+
+.optics-lens-reflection {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, transparent 40%, rgba(0, 184, 255, 0.03) 100%);
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* Detected ASL Letter Badge */
+.detected-letter-badge {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, rgba(0, 255, 163, 0.25), rgba(0, 184, 255, 0.25));
+  border: 2px solid var(--hud-primary);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 800;
+  color: #ffffff;
+  box-shadow: 0 0 16px var(--hud-primary-glow);
+  text-shadow: 0 0 8px var(--hud-primary);
+}
+
+.btn-speak-trigger {
+  background: linear-gradient(135deg, var(--hud-primary), var(--hud-secondary));
+  color: #000000;
+  border: none;
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 800;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  box-shadow: 0 0 16px var(--hud-primary-glow);
+  transition: var(--transition-fast);
+}
+
+.btn-speak-trigger:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 24px var(--hud-primary-glow);
+}
+
+.danger-mini {
+  background: rgba(239, 68, 68, 0.25) !important;
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  color: #fca5a5 !important;
+}
+
+.scenario-next-btn {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(139, 92, 246, 0.3)) !important;
+  border-color: var(--accent-blue) !important;
+}
+
+/* ==========================================
+ * FULL ASL DICTIONARY & SMART PREDICTOR STYLES
+ * ========================================== */
+
+/* Category Tabs */
+.dict-category-tabs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+}
+
+.dict-tab {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid var(--glass-border);
+  color: #94a3b8;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--transition-fast);
+}
+
+.dict-tab:hover {
+  color: #ffffff;
+  border-color: var(--hud-border);
+}
+
+.dict-tab.active {
+  background: var(--hud-primary);
+  color: #000000;
+  border-color: var(--hud-primary);
+  font-weight: 700;
+  box-shadow: 0 0 10px var(--hud-primary-glow);
+}
+
+/* ASL Suggestions Bar */
+.asl-suggestions-bar {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  margin-bottom: 4px;
+}
+
+.suggestion-tag {
+  background: rgba(0, 184, 255, 0.15);
+  border: 1px solid rgba(0, 184, 255, 0.4);
+  color: var(--hud-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--transition-fast);
+}
+
+.suggestion-tag:hover {
+  background: rgba(0, 184, 255, 0.3);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+
+

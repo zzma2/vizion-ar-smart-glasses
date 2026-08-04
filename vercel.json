@@ -1,0 +1,8 @@
+{
+  "version": 2,
+  "name": "vizion-ar-smart-glasses",
+  "cleanUrls": true,
+  "routes": [
+    { "src": "/(.*)", "dest": "/$1" }
+  ]
+}
