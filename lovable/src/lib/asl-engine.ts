@@ -97,15 +97,25 @@ export class MediaPipeASLClassifier {
       normThumbIndex > 0.38 &&
       indexTip.y < wrist.y + 0.05 * handScale;
 
-    // A. "THANK YOU" (起于嘴唇/下巴，向下方/前方延伸)
-    if (isFlatOpenHand && history && history.length >= 2) {
-      const oldest = history[0].landmarks;
-      if (oldest && oldest[8]) {
-        const deltaY = indexTip.y - oldest[8].y;
-        const deltaX = indexTip.x - oldest[8].x;
-        if (oldest[8].y >= 0.35 && deltaY > 0.040 && deltaY > Math.abs(deltaX) * 0.8) {
-          return "THANK YOU";
+    // A. "THANK YOU" (手掌置于下巴/嘴唇高度，预备或向下划动)
+    if (isFlatOpenHand) {
+      const isNearChinMouth = indexTip.y >= 0.28 && indexTip.y <= 0.65 && wrist.y >= 0.42;
+
+      // 1. 运动中 (向下方/前方延伸)
+      if (history && history.length >= 2) {
+        const oldest = history[0].landmarks;
+        if (oldest && oldest[8]) {
+          const deltaY = indexTip.y - oldest[8].y;
+          const deltaX = indexTip.x - oldest[8].x;
+          if (oldest[8].y >= 0.28 && deltaY > 0.035 && deltaY > Math.abs(deltaX) * 0.8) {
+            return "THANK YOU";
+          }
         }
+      }
+
+      // 2. 预备/起始姿态：平展手掌触碰/置于下巴嘴唇前面 (绝对优先触发 THANK YOU，防止误报 B!)
+      if (isNearChinMouth && wrist.y > indexTip.y + 0.10 * handScale) {
+        return "THANK YOU";
       }
     }
 
@@ -124,7 +134,6 @@ export class MediaPipeASLClassifier {
     }
 
     // C. "MY" (胸前位置：wrist.y >= 0.50 且呈斜向上姿态)
-    // 强制要求位于中胸高度 (wrist.y >= 0.50)，严禁在太阳穴/头部高位 (wrist.y < 0.50) 触发 MY！
     const dy = wrist.y - middleTip.y;
     const dx = Math.abs(middleTip.x - wrist.x);
     const isDiagonallyUpward = dy > 0.08 * handScale && dx >= 0.45 * dy;
@@ -203,7 +212,9 @@ export class MediaPipeASLClassifier {
 
     const dyUp = wrist.y - middleTip.y;
     const dxUp = Math.abs(middleTip.x - wrist.x);
-    const isPointingStraightUpB = dyUp > 0.10 * handScale && dxUp < 0.42 * dyUp && isIndexStraight && isMiddleStraight && isRingStraight && isPinkyStraight;
+
+    // B 必须在肩膀侧上方高位（禁止下巴处触发 B），手掌完全平直
+    const isPointingStraightUpB = dyUp > 0.10 * handScale && dxUp < 0.42 * dyUp && isIndexStraight && isMiddleStraight && isRingStraight && isPinkyStraight && wrist.y < 0.42;
 
     const isPointingDown = indexTip.y > indexMCP.y + 0.15 * handScale;
 
@@ -348,7 +359,7 @@ export class MediaPipeASLClassifier {
 
     const dyUp = wrist.y - middleTip.y;
     const dxUp = Math.abs(middleTip.x - wrist.x);
-    const isPointingStraightUpB = dyUp > 0.10 * handScale && dxUp < 0.42 * dyUp && isIndexStraight && isMiddleStraight && isRingStraight && isPinkyStraight;
+    const isPointingStraightUpB = dyUp > 0.10 * handScale && dxUp < 0.42 * dyUp && isIndexStraight && isMiddleStraight && isRingStraight && isPinkyStraight && wrist.y < 0.42;
 
     const isPointingDown = indexTip.y > indexMCP.y + 0.15 * handScale;
 

@@ -572,7 +572,8 @@ function SignToAudio() {
         }
 
         const isMobileDevice = typeof window !== "undefined" && window.innerWidth <= 768;
-        const requiredHoldCount = isMobileDevice ? 4 : 6;
+        const isPhraseGesture = detected.length > 1;
+        const requiredHoldCount = isPhraseGesture ? 3 : (isMobileDevice ? 5 : 7);
 
         if (holdCountRef.current >= requiredHoldCount) {
           const minTypingInterval = 1000;
