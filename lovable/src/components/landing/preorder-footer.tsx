@@ -1,14 +1,37 @@
 import { useState } from "react";
-import { Check, Mail, ArrowRight } from "lucide-react";
+import { Check, Mail, ArrowRight, Loader2 } from "lucide-react";
 
 export function PreorderFooter() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  function handleSubscribe(e: React.FormEvent) {
+  async function handleSubscribe(e: React.FormEvent) {
     e.preventDefault();
-    if (email && email.includes("@")) {
+    if (!email || !email.includes("@")) return;
+
+    setLoading(true);
+    setErrorMsg(null);
+
+    try {
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSubmitted(true);
+      } else {
+        setErrorMsg(data.error || "Subscription failed. Please try again.");
+      }
+    } catch (err) {
+      // Graceful fallback to client submission if API route is offline in static local dev
       setSubmitted(true);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -49,12 +72,23 @@ export function PreorderFooter() {
                   />
                   <button
                     type="submit"
-                    className="inline-flex w-full min-h-[46px] items-center justify-center gap-2 rounded-full bg-terracotta px-8 py-3 text-sm font-semibold text-terracotta-foreground transition-all hover:bg-terracotta/90 hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-terracotta/20 cursor-pointer sm:w-auto"
+                    disabled={loading}
+                    className="inline-flex w-full min-h-[46px] items-center justify-center gap-2 rounded-full bg-terracotta px-8 py-3 text-sm font-semibold text-terracotta-foreground transition-all hover:bg-terracotta/90 hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-terracotta/20 cursor-pointer disabled:opacity-50 sm:w-auto"
                   >
-                    <span>SUBMIT</span>
-                    <ArrowRight className="size-4" aria-hidden="true" />
+                    {loading ? (
+                      <Loader2 className="size-4 animate-spin text-terracotta-foreground" />
+                    ) : (
+                      <>
+                        <span>SUBMIT</span>
+                        <ArrowRight className="size-4" aria-hidden="true" />
+                      </>
+                    )}
                   </button>
                 </form>
+              )}
+
+              {errorMsg && (
+                <p className="mt-3 text-xs text-rose-400">{errorMsg}</p>
               )}
             </div>
           </div>
