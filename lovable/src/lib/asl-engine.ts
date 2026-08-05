@@ -97,49 +97,57 @@ export class MediaPipeASLClassifier {
       normThumbIndex > 0.38 &&
       indexTip.y < wrist.y + 0.05 * handScale;
 
-    // A. "THANK YOU" (靠动态向下位划动区分！静态绝不误报 Thank You，给字母 B 留出空间)
-    if (isFlatOpenHand && history && history.length >= 2) {
-      const oldest = history[0].landmarks;
-      if (oldest && oldest[8]) {
-        const deltaY = indexTip.y - oldest[8].y;
-        const deltaX = indexTip.x - oldest[8].x;
-        // 必须有明显向下延伸的动态位移
-        if (oldest[8].y >= 0.28 && deltaY > 0.035 && deltaY > Math.abs(deltaX) * 0.8) {
-          return "THANK YOU";
-        }
-      }
-    }
+    if (!isFlatOpenHand) return null;
 
-    // B. "HELLO" (斜向上姿态 dx >= 0.35 * dy 或有横向挥手动态)
-    // 正直向上 (dx < 0.35 * dy 且无动态) 属于字母 B！
-    const dyHello = wrist.y - middleTip.y;
-    const dxHello = Math.abs(middleTip.x - wrist.x);
-    const isHelloDiagonal = dyHello > 0.08 * handScale && dxHello >= 0.35 * dyHello;
+    // 计算手掌的偏转角度与位移
+    const dy = wrist.y - middleTip.y;
+    const dx = Math.abs(middleTip.x - wrist.x);
+    const isVerticalHand = dy > 0.10 * handScale && dx < 0.45 * dy; // 正手直立 (字母 B 姿态)
 
-    let isHelloWaving = false;
+    let deltaY = 0, deltaX = 0;
     if (history && history.length >= 2) {
       const oldest = history[0].landmarks;
       if (oldest && oldest[8]) {
-        const deltaX = Math.abs(indexTip.x - oldest[8].x);
-        if (deltaX > 0.035) isHelloWaving = true;
+        deltaY = indexTip.y - oldest[8].y;
+        deltaX = Math.abs(indexTip.x - oldest[8].x);
       }
     }
 
-    if (isFlatOpenHand && (indexTip.y < 0.38 || wrist.y < 0.50) && (isHelloDiagonal || isHelloWaving)) {
+    const isDownwardMotion = deltaY > 0.055 && deltaY > deltaX * 1.2; // 真实明确的向下划动 (非微小抖动)
+    const isWavingMotion = deltaX > 0.050; // 真实明确的横向挥手
+
+    // 如果手掌呈正垂直向上直立 (B 姿态)，且没有明确的划动/挥手动态，直接返回 null 保障字母 B！
+    if (isVerticalHand && !isDownwardMotion && !isWavingMotion) {
+      return null;
+    }
+
+    // A. "THANK YOU" (严格要求明确的向下划动动态 isDownwardMotion，排除静止抖动)
+    if (isDownwardMotion && oldestIndexY(history) >= 0.28) {
+      return "THANK YOU";
+    }
+
+    // B. "HELLO" (高位明确斜向上姿态 dx >= 0.45 * dy 或明显挥手 isWavingMotion)
+    const isHelloDiagonal = dy > 0.08 * handScale && dx >= 0.45 * dy;
+
+    if ((indexTip.y < 0.38 || wrist.y < 0.50) && (isHelloDiagonal || isWavingMotion)) {
       return "HELLO";
     }
 
-    // C. "MY" (胸前位置：wrist.y >= 0.50 且呈斜向上姿态)
-    const dy = wrist.y - middleTip.y;
-    const dx = Math.abs(middleTip.x - wrist.x);
-    const isDiagonallyUpward = dy > 0.08 * handScale && dx >= 0.45 * dy;
+    // C. "MY" (胸前位置：wrist.y >= 0.50 且呈显著斜向上姿态 dx >= 0.45 * dy)
     const isChestHeight = wrist.y >= 0.50 && wrist.y <= 0.90;
 
-    if (isFlatOpenHand && isDiagonallyUpward && isChestHeight) {
+    if (isHelloDiagonal && isChestHeight) {
       return "MY";
     }
 
     return null;
+
+    function oldestIndexY(hist: LandmarkHistoryItem[]): number {
+      if (hist && hist.length >= 2 && hist[0].landmarks && hist[0].landmarks[8]) {
+        return hist[0].landmarks[8].y;
+      }
+      return 0;
+    }
   }
 
   classifyLandmarks(
@@ -209,8 +217,8 @@ export class MediaPipeASLClassifier {
     const dyUp = wrist.y - middleTip.y;
     const dxUp = Math.abs(middleTip.x - wrist.x);
 
-    // B：手指正垂直向上 (dxUp < 0.38 * dyUp，倾角 20° 以内)，四指伸直
-    const isPointingStraightUpB = dyUp > 0.10 * handScale && dxUp < 0.38 * dyUp && isIndexStraight && isMiddleStraight && isRingStraight && isPinkyStraight;
+    // B：手指正垂直向上 (dxUp < 0.45 * dyUp，倾角 24° 以内)，四指伸直
+    const isPointingStraightUpB = dyUp > 0.10 * handScale && dxUp < 0.45 * dyUp && isIndexStraight && isMiddleStraight && isRingStraight && isPinkyStraight;
 
     const isPointingDown = indexTip.y > indexMCP.y + 0.15 * handScale;
 
@@ -355,7 +363,7 @@ export class MediaPipeASLClassifier {
 
     const dyUp = wrist.y - middleTip.y;
     const dxUp = Math.abs(middleTip.x - wrist.x);
-    const isPointingStraightUpB = dyUp > 0.10 * handScale && dxUp < 0.38 * dyUp && isIndexStraight && isMiddleStraight && isRingStraight && isPinkyStraight;
+    const isPointingStraightUpB = dyUp > 0.10 * handScale && dxUp < 0.45 * dyUp && isIndexStraight && isMiddleStraight && isRingStraight && isPinkyStraight;
 
     const isPointingDown = indexTip.y > indexMCP.y + 0.15 * handScale;
 
