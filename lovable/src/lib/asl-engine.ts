@@ -97,39 +97,35 @@ export class MediaPipeASLClassifier {
       normThumbIndex > 0.38 &&
       indexTip.y < wrist.y + 0.05 * handScale;
 
-    // A. "THANK YOU" (手掌置于下巴/嘴唇高度，预备或向下划动)
-    if (isFlatOpenHand) {
-      const isNearChinMouth = indexTip.y >= 0.28 && indexTip.y <= 0.65 && wrist.y >= 0.42;
-
-      // 1. 运动中 (向下方/前方延伸)
-      if (history && history.length >= 2) {
-        const oldest = history[0].landmarks;
-        if (oldest && oldest[8]) {
-          const deltaY = indexTip.y - oldest[8].y;
-          const deltaX = indexTip.x - oldest[8].x;
-          if (oldest[8].y >= 0.28 && deltaY > 0.035 && deltaY > Math.abs(deltaX) * 0.8) {
-            return "THANK YOU";
-          }
+    // A. "THANK YOU" (靠动态向下位划动区分！静态绝不误报 Thank You，给字母 B 留出空间)
+    if (isFlatOpenHand && history && history.length >= 2) {
+      const oldest = history[0].landmarks;
+      if (oldest && oldest[8]) {
+        const deltaY = indexTip.y - oldest[8].y;
+        const deltaX = indexTip.x - oldest[8].x;
+        // 必须有明显向下延伸的动态位移
+        if (oldest[8].y >= 0.28 && deltaY > 0.035 && deltaY > Math.abs(deltaX) * 0.8) {
+          return "THANK YOU";
         }
-      }
-
-      // 2. 预备/起始姿态：平展手掌触碰/置于下巴嘴唇前面 (绝对优先触发 THANK YOU，防止误报 B!)
-      if (isNearChinMouth && wrist.y > indexTip.y + 0.10 * handScale) {
-        return "THANK YOU";
       }
     }
 
-    // B. "HELLO" (高举于太阳穴/额头高位：wrist.y < 0.50 或 indexTip.y < 0.38)
-    if (isFlatOpenHand && (indexTip.y < 0.38 || wrist.y < 0.50)) {
-      if (history && history.length >= 2) {
-        const oldest = history[0].landmarks;
-        if (oldest && oldest[8]) {
-          const deltaY = indexTip.y - oldest[8].y;
-          if (oldest[8].y >= 0.38 && deltaY > 0.040) {
-            return "THANK YOU";
-          }
-        }
+    // B. "HELLO" (斜向上姿态 dx >= 0.35 * dy 或有横向挥手动态)
+    // 正直向上 (dx < 0.35 * dy 且无动态) 属于字母 B！
+    const dyHello = wrist.y - middleTip.y;
+    const dxHello = Math.abs(middleTip.x - wrist.x);
+    const isHelloDiagonal = dyHello > 0.08 * handScale && dxHello >= 0.35 * dyHello;
+
+    let isHelloWaving = false;
+    if (history && history.length >= 2) {
+      const oldest = history[0].landmarks;
+      if (oldest && oldest[8]) {
+        const deltaX = Math.abs(indexTip.x - oldest[8].x);
+        if (deltaX > 0.035) isHelloWaving = true;
       }
+    }
+
+    if (isFlatOpenHand && (indexTip.y < 0.38 || wrist.y < 0.50) && (isHelloDiagonal || isHelloWaving)) {
       return "HELLO";
     }
 
@@ -213,8 +209,8 @@ export class MediaPipeASLClassifier {
     const dyUp = wrist.y - middleTip.y;
     const dxUp = Math.abs(middleTip.x - wrist.x);
 
-    // B 必须在肩膀侧上方高位（禁止下巴处触发 B），手掌完全平直
-    const isPointingStraightUpB = dyUp > 0.10 * handScale && dxUp < 0.42 * dyUp && isIndexStraight && isMiddleStraight && isRingStraight && isPinkyStraight && wrist.y < 0.42;
+    // B：手指正垂直向上 (dxUp < 0.38 * dyUp，倾角 20° 以内)，四指伸直
+    const isPointingStraightUpB = dyUp > 0.10 * handScale && dxUp < 0.38 * dyUp && isIndexStraight && isMiddleStraight && isRingStraight && isPinkyStraight;
 
     const isPointingDown = indexTip.y > indexMCP.y + 0.15 * handScale;
 
@@ -359,7 +355,7 @@ export class MediaPipeASLClassifier {
 
     const dyUp = wrist.y - middleTip.y;
     const dxUp = Math.abs(middleTip.x - wrist.x);
-    const isPointingStraightUpB = dyUp > 0.10 * handScale && dxUp < 0.42 * dyUp && isIndexStraight && isMiddleStraight && isRingStraight && isPinkyStraight && wrist.y < 0.42;
+    const isPointingStraightUpB = dyUp > 0.10 * handScale && dxUp < 0.38 * dyUp && isIndexStraight && isMiddleStraight && isRingStraight && isPinkyStraight;
 
     const isPointingDown = indexTip.y > indexMCP.y + 0.15 * handScale;
 
