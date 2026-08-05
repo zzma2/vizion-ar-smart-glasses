@@ -99,10 +99,8 @@ export class MediaPipeASLClassifier {
 
     if (!isFlatOpenHand) return null;
 
-    // 计算手掌的偏转角度与位移
     const dy = wrist.y - middleTip.y;
     const dx = Math.abs(middleTip.x - wrist.x);
-    const isVerticalHand = dy > 0.10 * handScale && dx < 0.45 * dy; // 正手直立 (字母 B 姿态)
 
     let deltaY = 0, deltaX = 0;
     if (history && history.length >= 2) {
@@ -113,21 +111,19 @@ export class MediaPipeASLClassifier {
       }
     }
 
-    const isDownwardMotion = deltaY > 0.055 && deltaY > deltaX * 1.2; // 真实明确的向下划动 (非微小抖动)
-    const isWavingMotion = deltaX > 0.050; // 真实明确的横向挥手
+    // A. "THANK YOU"
+    // 下巴/嘴唇前平展手掌 (indexTip.y 位于下巴区 0.25~0.68)
+    // 只要处于下巴区且有向下划动趋势 (deltaY > 0.015) 或手呈前倾延伸姿态，即刻识别为 THANK YOU，绝不丢给字母 B！
+    const isChinZone = indexTip.y >= 0.25 && indexTip.y <= 0.68;
+    const isDownwardTrend = deltaY > 0.015 || (history && history.length >= 2 && deltaY >= -0.010);
 
-    // 如果手掌呈正垂直向上直立 (B 姿态)，且没有明确的划动/挥手动态，直接返回 null 保障字母 B！
-    if (isVerticalHand && !isDownwardMotion && !isWavingMotion) {
-      return null;
-    }
-
-    // A. "THANK YOU" (严格要求明确的向下划动动态 isDownwardMotion，排除静止抖动)
-    if (isDownwardMotion && oldestIndexY(history) >= 0.28) {
+    if (isChinZone && isDownwardTrend) {
       return "THANK YOU";
     }
 
-    // B. "HELLO" (高位明确斜向上姿态 dx >= 0.45 * dy 或明显挥手 isWavingMotion)
+    // B. "HELLO" (高位斜向上姿态 dx >= 0.45 * dy 或明显挥手 deltaX > 0.050)
     const isHelloDiagonal = dy > 0.08 * handScale && dx >= 0.45 * dy;
+    const isWavingMotion = deltaX > 0.050;
 
     if ((indexTip.y < 0.38 || wrist.y < 0.50) && (isHelloDiagonal || isWavingMotion)) {
       return "HELLO";
@@ -141,13 +137,6 @@ export class MediaPipeASLClassifier {
     }
 
     return null;
-
-    function oldestIndexY(hist: LandmarkHistoryItem[]): number {
-      if (hist && hist.length >= 2 && hist[0].landmarks && hist[0].landmarks[8]) {
-        return hist[0].landmarks[8].y;
-      }
-      return 0;
-    }
   }
 
   classifyLandmarks(

@@ -573,8 +573,8 @@ function SignToAudio() {
 
         const isMobileDevice = typeof window !== "undefined" && window.innerWidth <= 768;
         const isPhraseGesture = detected.length > 1;
-        // Phrase gestures trigger fast (3 frames ~90ms), Single letters require deliberate hold (14 frames ~420ms)
-        const requiredHoldCount = isPhraseGesture ? 3 : (isMobileDevice ? 10 : 14);
+        // Fast responsive letter typing (5 frames ~150ms) and instant phrase recognition (3 frames ~90ms)
+        const requiredHoldCount = isPhraseGesture ? 3 : (isMobileDevice ? 4 : 5);
 
         if (holdCountRef.current >= requiredHoldCount) {
           const minTypingInterval = 1000;
