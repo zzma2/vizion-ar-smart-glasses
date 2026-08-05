@@ -159,7 +159,7 @@ function SpeakToText() {
   const [listening, setListening] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [translated, setTranslated] = useState("");
-  const [targetLang, setTargetLang] = useState("zh-CN");
+  const [targetLang, setTargetLang] = useState("en-US");
   const [error, setError] = useState<string | null>(null);
 
   const recognitionRef = useRef<any>(null);
