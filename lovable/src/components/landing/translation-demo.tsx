@@ -573,11 +573,11 @@ function SignToAudio() {
 
         const isMobileDevice = typeof window !== "undefined" && window.innerWidth <= 768;
         const isPhraseGesture = detected.length > 1;
-        // Perfectly balanced Goldilocks recognition: Phrases (3 frames ~90ms), Letters (4 frames ~120ms)
-        const requiredHoldCount = isPhraseGesture ? 3 : (isMobileDevice ? 3 : 4);
+        // Fast responsive letter typing (5 frames ~150ms) and instant phrase recognition (3 frames ~90ms)
+        const requiredHoldCount = isPhraseGesture ? 3 : (isMobileDevice ? 4 : 5);
 
         if (holdCountRef.current >= requiredHoldCount) {
-          const minTypingInterval = isPhraseGesture ? 700 : 500; // Natural comfortable typing rhythm!
+          const minTypingInterval = 1000;
           if (now - lastTimeRef.current >= minTypingInterval) {
             if (detected !== lastAppendedRef.current || now - lastTimeRef.current > 2500) {
               lastTimeRef.current = now;
