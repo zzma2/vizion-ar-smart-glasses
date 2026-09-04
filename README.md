@@ -3,11 +3,10 @@
 > **Real-Time ASL-to-Speech & Speech-to-Subtitle Smart Eyewear Platform**  
 > *Bridging the communication gap between Deaf & Hard of Hearing (DHH) individuals and the hearing world.*
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-vizion--apollo-E88D5A?style=for-the-badge&logo=vercel&logoColor=white)](https://vizion-ar-smart-glasses.vercel.app/)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-vizion--apollo.vercel.app-E88D5A?style=for-the-badge&logo=vercel&logoColor=white)](https://vizion-apollo.vercel.app/)
 [![MediaPipe](https://img.shields.io/badge/MediaPipe-Hand%20Tracking-00E5FF?style=for-the-badge&logo=google&logoColor=white)](https://developers.google.com/mediapipe)
 [![React](https://img.shields.io/badge/React-Vite%20+%20TanStack-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![Resend](https://img.shields.io/badge/Resend-Newsletter%20API-000000?style=for-the-badge)](https://resend.com)
 
 ---
 
@@ -54,9 +53,9 @@
 
 ### 3. 📬 Newsletter Subscription
 
-- **Serverless Email API**: Vercel Edge Function (`/api/subscribe`) powered by Resend.
-- **Automated Welcome Email**: Beautiful dark-mode branded HTML email sent to each subscriber.
-- **Zero-Config Frontend**: Email form with loading states, error handling, and success feedback built into the landing page footer.
+- **Email Capture Form**: Visitors can submit their email address via the landing page footer to stay updated on Vizion Apollo.
+- **Serverless Backend**: Vercel Serverless Function (`/api/subscribe`) built and ready for Resend API integration.
+- **Status — Work in Progress**: Automated welcome email delivery is not yet fully activated. Requires a `RESEND_API_KEY` environment variable set in Vercel. See [Environment Variables](#-environment-variables-optional) below.
 
 ---
 
@@ -72,7 +71,7 @@
 | **Translation** | MyMemory Translation API |
 | **Email** | Resend API via Vercel Serverless Function |
 | **Deployment** | Vercel (auto-deploy from GitHub) |
-| **PWA** | `manifest.json` for installable mobile app |
+
 
 ---
 
@@ -115,20 +114,6 @@ npx serve .
 ```
 
 ---
-
-## 📱 Mobile Installation (PWA)
-
-Vizion Apollo can be installed as a standalone mobile app — no app store required.
-
-### iOS (Safari)
-1. Open [vizion-ar-smart-glasses.vercel.app](https://vizion-ar-smart-glasses.vercel.app/) in Safari.
-2. Tap **Share** → **Add to Home Screen** → **Add**.
-
-### Android (Chrome)
-1. Open [vizion-ar-smart-glasses.vercel.app](https://vizion-ar-smart-glasses.vercel.app/) in Chrome.
-2. Tap **⋮** → **Install app** → **Install**.
-
-> Runs full-screen, remembers permissions, launches instantly from home screen.
 
 ---
 
